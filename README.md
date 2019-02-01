@@ -9,3 +9,7 @@ HTML5 Boilerplate https://html5boilerplate.com/
 Node.js https://nodejs.org/en/
 NPM https://www.npmjs.com/
 Yeoman https://yeoman.io/
+
+## Code Snippet Credits
+
+Flexbox 100% Vertical Height https://codepen.io/micjamking/pen/QdojLz

@@ -40,14 +40,6 @@ console.log(request);
 fetch(request)
     .then(function(response) {
       return response.json();
-        // console.log(response);
-        //
-        // let string_response = JSON.stringify(response);
-        // console.log(string_response);
-        //
-        // response.text().then(function(text){
-        //   console.log(text);
-        // });
     })
     .then(function(the_json){
       let string_result = JSON.stringify(the_json);
