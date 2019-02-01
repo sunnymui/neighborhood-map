@@ -76,7 +76,7 @@ function Taqueria(data){
 function TaqueriaListViewModel() {
   // DATA
   let self = this;
-  const init_data_url = 'data.js';
+  const init_data_url = 'js/data.js';
   self.taquerias = ko.observableArray([]);
 
   // STATE
