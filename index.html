@@ -46,12 +46,12 @@
 
         <main role="main" class="container-fluid flex-container-height-100">
 
-          <div class="row lg-height-100">
+          <div class="row sm-height-100">
             <!-- Map View -->
             <div class="col-sm-8 lg-height-100 sm-height-70 bg-primary">
 
-              <h1 class="display-1">Map here</h1>
-              <p>This example is a quick exercise to illustrate how fixed to top navbar works. As you scroll, it will remain fixed to the top of your browser’s viewport.</p>
+              <div id="map" class="sm-height-100"></div>
+
             </div>
 
             <!-- List View -->
@@ -96,8 +96,13 @@
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
         <!-- Knockout.js from CDN htps://knockoutjs.com-->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js"></script>
+        <!-- Google Maps API -->
+        <script async defer
+            src=
+            "https://maps.googleapis.com/maps/api/js?libraries=places,geometry,drawing&key=AIzaSyAOLNMOd6UDnQ4VGkFlqijUnoy6Ww7d8jU&v=3&callback=initMap">
+        </script>
 
         <script src="js/plugins.js"></script>
-        <script src="js/main.js"></script>
+        <script async defer src="js/main.js"></script>
     </body>
 </html>

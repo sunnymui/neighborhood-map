@@ -113,6 +113,10 @@ textarea {
 	  flex-direction: column;
   }
 
+  .sm-height-100 {
+    height: 100%;
+  }
+
   .sm-height-70 {
     height: 70%;
   }
