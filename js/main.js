@@ -12,14 +12,17 @@ function TaqueriaListViewModel() {
   let self = this;
   const init_data_url = 'https://sunnymui.github.io/neighborhood-map/js/data.js';
 
-  // array to store each taqueria listing
-  self.taquerias = ko.observableArray([]);
+  // array to store each taqueria listing to be displayed
+  self.Taquerias = ko.observableArray([]);
 
   // STATE
 
+  // tracks the currently selected taqueria to view info for
   self.current_taqueria = ko.observable();
   // track network status errors on http requests
   self.network_error = ko.observable();
+  // tracks the current search term to filter Taquerias array by
+  self.current_filter= ko.observable();
 
   // OPERATIONS
 
@@ -38,14 +41,46 @@ function TaqueriaListViewModel() {
       .then(function(init_data){
         // grab the array of raw data
         let response_array = init_data.response;
+        // loop through the data and instantiate Taqueria objs
+        for (let i = 0; i < response_array.length; i==1) {
+          // shorthand for the current data item
+          let current_item = response_array[i];
+          // create a Taqueria instance with the current item's data
+          let current_Taqueria = new Taqueria({
+              name: current_item.name,
+              location: current_item.location,
+              foursquare_id: current_item.id
+          });
+          // push the Taqueria to the startin Taquerias array
+          self.Taquerias.push(current_Taqueria);
+        }
         console.log(init_data);
       }
       // TODO add some error catching
     );
   };
+  self.filtered_Taquerias = ko.computed(function() {
+    /*
+    Filters the taquerias by the filter term and returns matches
+    Args: na
+    Return: matches (observableArray / obj) - matching Taquerias with a name matching the filter term
+    */
+    // filter the Taquerias array and store in matches variable
+    let matches = ko.utils.arrayFilter(self.Taquerias, function(current_Taqueria) {
+      // lowercase the taqueria name to eliminate case sensitivity
+      let current_name = current_Taqueria.name().toLowerCase();
+      // if filter term is in current name, return true to include the current Taqueria as a match
+      return current_name.includes(self.current_filter);
+    });
+
+    return matches;
+  }, self);
 
   // Initialize View Model Defaults
   self.get_init_data(init_data_url);
+
+  // store all the taqueria instances in the startin taquerias array
+
 }
 
 ko.applyBindings(new TaqueriaListViewModel());
@@ -115,13 +150,13 @@ var gmap = {
     Return: na
     */
     // shorthand for the markers array
-    var markers = gmap.markers;
+    let markers = gmap.markers;
     // bounds obj to extend map with our marker locations
-    var bounds = new google.maps.LatLngBounds();
+    let bounds = new google.maps.LatLngBounds();
     // shorthand to the map
-    var map = gmap.map;
+    let map = gmap.map;
     // Extend the boundaries of the map for each marker and display the marker
-    for (var i = 0; i < markers.length; i++) {
+    for (let i = 0; i < markers.length; i++) {
       markers[i].setMap(map);
       bounds.extend(markers[i].position);
     }
