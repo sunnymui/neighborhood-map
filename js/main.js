@@ -13,14 +13,14 @@ function TaqueriaListViewModel() {
   const init_data_url = 'https://sunnymui.github.io/neighborhood-map/js/data.js';
 
   // array to store each taqueria listing to be displayed
-  self.Taquerias = ko.observableArray([]);
+  self.Taquerias = ko.observableArray();
 
   // STATE
 
   // tracks the currently selected taqueria to view info for
   self.current_taqueria = ko.observable();
-  // track network status errors on http requests
-  self.network_error = ko.observable();
+  // tracks if an error occured and the type
+  self.error_triggered = ko.observable();
   // tracks the current search term to filter Taquerias array by
   self.current_filter= ko.observable();
 
@@ -42,7 +42,7 @@ function TaqueriaListViewModel() {
         // grab the array of raw data
         let response_array = init_data.response;
         // loop through the data and instantiate Taqueria objs
-        for (let i = 0; i < response_array.length; i==1) {
+        for (let i = 0; i < response_array.length; i+=1) {
           // shorthand for the current data item
           let current_item = response_array[i];
           // create a Taqueria instance with the current item's data
@@ -54,7 +54,8 @@ function TaqueriaListViewModel() {
           // push the Taqueria to the startin Taquerias array
           self.Taquerias.push(current_Taqueria);
         }
-        console.log(init_data);
+
+        console.log(self.Taquerias());
       }
       // TODO add some error catching
     );
@@ -83,7 +84,16 @@ function TaqueriaListViewModel() {
 
 }
 
-ko.applyBindings(new TaqueriaListViewModel());
+// maybe i shoudl wrap this in a window.load to ensure it executes after scripts ready
+var taqueria_app = new TaqueriaListViewModel();
+// apply the data bindings
+ko.applyBindings(taqueria_app);
+
+// wait for everything to be loaded before initializing the map
+window.onload = function() {
+  // initialize the google map
+  gmap.init_map();
+};
 
 // Google Maps Init
 
@@ -91,26 +101,40 @@ var gmap = {
   map: {},
   markers: [],
   filtered_markers: [],
-  initMap: function() {
+  error_codes: {
+    api_not_loaded: 'Google Maps API did not load. Please check your connection and reload the page'
+  },
+  init_map: function() {
     /*
     Instantiates the google map and displays the starting markers
     Args: na
     Return: na
     */
     // starting coordinates for san jose,ca
+
     let start_loc = {
       lat: 37.3361,
       lng: -121.89100000000002
-    }
+    };
+    // grab the map dom element
     let map_dom_element = document.getElementById('map');
 
-    // instantiate the google map
-    // Constructor creates a new map - only center and zoom are required.
-    gmap.map = new google.maps.Map(map_dom_element, {
-      center: start_loc,
-      zoom: 13,
-      mapTypeControl: false
-    });
+    // catches errors if the google maps library didnt load
+    try {
+      // instantiate the google map
+      // Constructor creates a new map - only center and zoom are required.
+      gmap.map = new google.maps.Map(map_dom_element, {
+        center: start_loc,
+        zoom: 13,
+        mapTypeControl: false
+      });
+    }
+    catch(error) {
+      // notify the main taqueria app of the api loading error
+      taqueria_app.error_triggered(gmap.error_codes.api_not_loaded);
+      // exit the init function early to not waste time
+      return;
+    }
 
     let test_loc = {
       "id": "40c3b000f964a520e3001fe3",
