@@ -55,7 +55,13 @@ ko.applyBindings(new TaqueriaListViewModel());
 var gmap = {
   map: {},
   markers: [],
+  filtered_markers: [],
   initMap: function() {
+    /*
+    Instantiates the google map and displays the starting markers
+    Args: na
+    Return: na
+    */
     // starting coordinates for san jose,ca
     let start_loc = {
       lat: 37.3361,
@@ -79,33 +85,71 @@ var gmap = {
           "lng": -121.88436929316791
       }
     };
-
-    gmap.make_marker(test_loc);
-    gmap.show_markers();
+    // create the markers from the base data
+    let marker = gmap.make_marker(test_loc);
+    // Push the marker to our array of markers.
+    gmap.markers.push(marker);
+    // show all the markers on the map
+    gmap.show_all_markers();
   },
   make_marker: function(location) {
+    /*
+    Creates a single marker object from a lat lng obj pair
+    Args: {lat,lng} location pair (obj)
+    Return: a Marker instance for the location (obj)
+    */
     // Create a marker per location, and put into markers array.
     var marker = new google.maps.Marker({
       position: location.location,
       title: location.name,
       animation: google.maps.Animation.DROP,
-      icon: gmap.makeMarkerIcon('0091ff'),
+      icon: gmap.make_marker_icon('0091ff'),
     });
-    // Push the marker to our array of markers.
-    gmap.markers.push(marker);
+    // return the created marker
+    return marker;
   },
-  show_markers: function() {
+  show_all_markers: function() {
+    /*
+    Displays all the markers in the markers array.
+    Args: na
+    Return: na
+    */
+    // shorthand for the markers array
     var markers = gmap.markers;
+    // bounds obj to extend map with our marker locations
     var bounds = new google.maps.LatLngBounds();
+    // shorthand to the map
     var map = gmap.map;
     // Extend the boundaries of the map for each marker and display the marker
     for (var i = 0; i < markers.length; i++) {
       markers[i].setMap(map);
       bounds.extend(markers[i].position);
     }
+    // fit the map to the bounds of the marker locaitons
     map.fitBounds(bounds);
   },
-  makeMarkerIcon: function(markerColor) {
+  show_marker: function(marker) {
+    /*
+    Displays one specific marker on the map.
+    Args: Marker to display on the map (obj)
+    Return: na
+    */
+    // shorthand to the map
+    var map = gmap.map;
+    // bounds to extend the map with our new marker location
+    var bounds = new google.maps.LatLngBounds();
+    // add the marker to the map
+    marker.setMap(map);
+    // extend the bounds with the marker location
+    bounds.extend(marker.position);
+    // fit the map with the new bounds
+    map.fitBounds(bounds);
+  },
+  make_marker_icon: function(markerColor) {
+    /*
+    Creates a custom marker icon based on a color.
+    Args: markerColor (string) - 6 digit hex coded color value
+    */
     var markerImage = new google.maps.MarkerImage(
       'http://chart.googleapis.com/chart?chst=d_map_spin&chld=1.15|0|'+ markerColor +
       '|40|_|%E2%80%A2',
@@ -117,31 +161,21 @@ var gmap = {
   }
 };
 
-// function initMap() {
-//   let map;
-//   // starting coordinates for san jose,ca
-//   let start_loc = {
-//     lat: 37.3361,
-//     lng: -121.89100000000002
-//   }
-//
-//   // instantiate the google map
-//   // Constructor creates a new map - only center and zoom are required.
-//   map = new google.maps.Map(document.getElementById('map'), {
-//     center: start_loc,
-//     zoom: 13,
-//     mapTypeControl: false
-//   });
-// }
-
 // import the starting data
 
 // build the listings obj into a object array for storing all the current stuff
 
 // render the listings on the map
-var foursquare_api = (function(){
+var fsquare = {
+  client_details: {
+    id: 'NFVFONNFXKXHUZIRELJPUT5OVPJYJASJLDU3GUGPABYLRJY5',
+    secret:'UCVSJOTSDRFKMBWTYIGTXFUOO45ECAZCQLDU4ZAN301IBU2G',
+    api_version: '20180129',
+  },
+  api_parameters: {
 
-})();
+  }
+};
 
 let client_details = {
   id: 'NFVFONNFXKXHUZIRELJPUT5OVPJYJASJLDU3GUGPABYLRJY5',
