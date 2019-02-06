@@ -2,9 +2,16 @@
 // Knockout Web App
 
 function Taqueria(data){
+  // stores the index identifier for easy accessibility
+  this.index = ko.observable(data.index);
+  // stores the name string of the taqueria
   this.name = ko.observable(data.name);
+  // store lat lng location obj
   this.location = ko.observable(data.location);
-  this.foursquare_id = ko.observable(data.id);
+  // store foursquare place id
+  this.foursquare_id = ko.observable(data.foursquare_id);
+  // stores details already loaded by api
+  this.detail_cache = ko.observable();
 }
 
 function TaqueriaListViewModel() {
@@ -47,15 +54,20 @@ function TaqueriaListViewModel() {
           let current_item = response_array[i];
           // create a Taqueria instance with the current item's data
           let current_Taqueria = new Taqueria({
+              index: i,
               name: current_item.name,
               location: current_item.location,
               foursquare_id: current_item.id
           });
-          // push the Taqueria to the startin Taquerias array
+          // instantiate a google map marker for the currrent taqueria
+          let current_marker = gmap.make_marker(current_item.location, current_item.name);
+          // store marker in the gmap module's markers array
+          gmap.markers.push(current_marker);
+          // push the Taqueria to the main app's Taquerias array
           self.Taquerias.push(current_Taqueria);
         }
-
-        console.log(self.Taquerias());
+        // start the google map module
+        gmap.init_map();
       }
       // TODO add some error catching
     );
@@ -89,18 +101,13 @@ var taqueria_app = new TaqueriaListViewModel();
 // apply the data bindings
 ko.applyBindings(taqueria_app);
 
-// wait for everything to be loaded before initializing the map
-window.onload = function() {
-  // initialize the google map
-  gmap.init_map();
-};
-
 // Google Maps Init
 
 var gmap = {
   map: {},
   markers: [],
   filtered_markers: [],
+  info_window: {},
   error_codes: {
     api_not_loaded: 'Google Maps API did not load. Please check your connection and reload the page'
   },
@@ -128,6 +135,12 @@ var gmap = {
         zoom: 13,
         mapTypeControl: false
       });
+
+      // instantiate an infowindow to populate place details with
+      gmap.info_window = new google.maps.InfoWindow();
+
+      // display all the markers
+      gmap.show_all_markers();
     }
     catch(error) {
       // notify the main taqueria app of the api loading error
@@ -135,32 +148,18 @@ var gmap = {
       // exit the init function early to not waste time
       return;
     }
-
-    let test_loc = {
-      "id": "40c3b000f964a520e3001fe3",
-      "name": "La Victoria Taqueria",
-      "location": {
-          "lat": 37.332663708429294,
-          "lng": -121.88436929316791
-      }
-    };
-    // create the markers from the base data
-    let marker = gmap.make_marker(test_loc);
-    // Push the marker to our array of markers.
-    gmap.markers.push(marker);
-    // show all the markers on the map
-    gmap.show_all_markers();
   },
-  make_marker: function(location) {
+  make_marker: function(location, name) {
     /*
     Creates a single marker object from a lat lng obj pair
-    Args: {lat,lng} location pair (obj)
+    Args: location (obj) - {lat,lng} location pair
+          name (string) - title to show when mousing over the marker
     Return: a Marker instance for the location (obj)
     */
     // Create a marker per location, and put into markers array.
     var marker = new google.maps.Marker({
-      position: location.location,
-      title: location.name,
+      position: location,
+      title: name,
       animation: google.maps.Animation.DROP,
       icon: gmap.make_marker_icon('0091ff'),
     });
@@ -181,7 +180,9 @@ var gmap = {
     let map = gmap.map;
     // Extend the boundaries of the map for each marker and display the marker
     for (let i = 0; i < markers.length; i++) {
+      // set the map to show the marker on the current map
       markers[i].setMap(map);
+      // fits the map bounds to the marker
       bounds.extend(markers[i].position);
     }
     // fit the map to the bounds of the marker locaitons
@@ -217,6 +218,106 @@ var gmap = {
       new google.maps.Point(10, 34),
       new google.maps.Size(21,34));
     return markerImage;
+  },
+  get_places_details: function(marker, infowindow) {
+    /*
+    This is the PLACE DETAILS search - it's the most detailed so it's only
+    executed when a marker is selected, indicating the user wants more
+    details about that place.
+    Args: marker (obj) - the Marker instance to get details for from places api
+          infoWindow (obj) - the infoWindow instance to add detail info to
+    Return: na
+    */
+    var service = new google.maps.places.PlacesService(map);
+
+    service.getDetails({
+      placeId: marker.id
+    }, function(place, status) {
+      if (status === google.maps.places.PlacesServiceStatus.OK) {
+        // Set the marker property on this infowindow so it isn't created again.
+        infowindow.marker = marker;
+        var innerHTML = '<div>';
+        if (place.name) {
+          innerHTML += '<strong>' + place.name + '</strong>';
+        }
+        if (place.formatted_address) {
+          innerHTML += '<br>' + place.formatted_address;
+        }
+        if (place.formatted_phone_number) {
+          innerHTML += '<br>' + place.formatted_phone_number;
+        }
+        if (place.opening_hours) {
+          innerHTML += '<br><br><strong>Hours:</strong><br>' +
+              place.opening_hours.weekday_text[0] + '<br>' +
+              place.opening_hours.weekday_text[1] + '<br>' +
+              place.opening_hours.weekday_text[2] + '<br>' +
+              place.opening_hours.weekday_text[3] + '<br>' +
+              place.opening_hours.weekday_text[4] + '<br>' +
+              place.opening_hours.weekday_text[5] + '<br>' +
+              place.opening_hours.weekday_text[6];
+        }
+        if (place.photos) {
+          innerHTML += '<br><br><img src="' + place.photos[0].getUrl(
+              {maxHeight: 100, maxWidth: 200}) + '">';
+        }
+        innerHTML += '</div>';
+        infowindow.setContent(innerHTML);
+        infowindow.open(map, marker);
+        // Make sure the marker property is cleared if the infowindow is closed.
+        infowindow.addListener('closeclick', function() {
+          infowindow.marker = null;
+        });
+      }
+    });
+  },
+
+  show_info_window: function(marker, infowindow) {
+    /*
+    This function populates the infowindow when the marker is clicked. We'll only allow
+     one infowindow which will open at the marker that is clicked, and populate based
+     on that markers position.
+    */
+    // Check to make sure the infowindow is not already opened on this marker.
+    if (infowindow.marker != marker) {
+      // Clear the infowindow content to give the streetview time to load.
+      infowindow.setContent('');
+      infowindow.marker = marker;
+      // Make sure the marker property is cleared if the infowindow is closed.
+      infowindow.addListener('closeclick', function() {
+        infowindow.marker = null;
+      });
+      var streetViewService = new google.maps.StreetViewService();
+      var radius = 50;
+      // In case the status is OK, which means the pano was found, compute the
+      // position of the streetview image, then calculate the heading, then get a
+      // panorama from that and set the options
+      function getStreetView(data, status) {
+
+        if (status == google.maps.StreetViewStatus.OK) {
+          var nearStreetViewLocation = data.location.latLng;
+          var heading = google.maps.geometry.spherical.computeHeading(
+            nearStreetViewLocation, marker.position);
+            infowindow.setContent('<div>' + marker.title + '</div><div id="pano"></div>');
+            var panoramaOptions = {
+              position: nearStreetViewLocation,
+              pov: {
+                heading: heading,
+                pitch: 30
+              }
+            };
+          var panorama = new google.maps.StreetViewPanorama(
+            document.getElementById('pano'), panoramaOptions);
+        } else {
+          infowindow.setContent('<div>' + marker.title + '</div>' +
+            '<div>No Street View Found</div>');
+        }
+      }
+      // Use streetview service to get the closest streetview image within
+      // 50 meters of the markers position
+      streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
+      // Open the infowindow on the correct marker.
+      infowindow.open(map, marker);
+    }
   }
 };
 
