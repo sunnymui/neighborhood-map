@@ -1,3 +1,24 @@
+// Utility functions
+
+var util = {
+  clean_string: function(string) {
+    /*
+    Cleans a string in prep for comparisons or other uses. Strips out extra
+    white space and punctuation.
+    Args: string (str) - string to clean
+    Return: cleaned string (str)
+    */
+    // strip filter text of extra whitespace before/after, lowercase so it isn't case sensitive
+    return string.trim()
+                 .toLowerCase()
+                 // strip out punctation and collapse extra whitespace, source:
+                 // https://stackoverflow.com/questions/4328500/how-can-i-strip-all-punctuation-from-a-string-in-javascript-using-regex
+                 // extended with missing ’ punctuation
+                 .replace(/['!"#$%&\\'()\*+,\-\.\/:;’<=>?@\[\\\]\^_`{|}~']/g,"")
+                 .replace(/\s{2,}/g," ");
+  }
+};
+
 // run the main app on window loaded
 // Knockout Web App
 
@@ -29,6 +50,8 @@ function TaqueriaListViewModel() {
   // tracks if an error occured and the type
   self.error_triggered = ko.observable();
   // tracks the current search term to filter Taquerias array by
+  self.entered_terms = ko.observable('');
+  // tracks the current search term to filter Taquerias array by
   self.current_filter = ko.observable('');
 
   // OPERATIONS
@@ -59,28 +82,32 @@ function TaqueriaListViewModel() {
               location: current_item.location,
               foursquare_id: current_item.id
           });
-          // instantiate a google map marker for the currrent taqueria
-          let current_marker = gmap.make_marker(current_item.location, current_item.name);
-          // store marker in the gmap module's markers array
-          gmap.markers.push(current_marker);
           // push the Taqueria to the main app's Taquerias array
           self.Taquerias.push(current_Taqueria);
         }
-        // start the google map module
-        gmap.init_map();
+        // start the google map module with the raw location data
+        gmap.init_map(response_array);
       }
       // TODO add some error catching
     );
   };
+  self.set_current_filter_to_entered_terms = function() {
+    /*
+    Sets the current filter to the value inputted into entered terms.
+    Args: na
+    Return: na
+    */
+    self.current_filter(self.entered_terms());
+  };
+
   self.filtered_Taquerias = ko.computed(function() {
     /*
     Filters the taquerias by the filter term and returns matches
     Args: na
     Return: matches (observableArray / obj) - matching Taquerias with a name matching the filter term
     */
-
-    // inputted text to filter taqueria names by
-    let filter = self.current_filter().toLowerCase();
+    // strip filter text of extra whitespace before/after, lowercase so it isn't case sensitive
+    let filter = util.clean_string(self.current_filter());
     // array to hold matching taquerias
     let matches = [];
 
@@ -91,8 +118,8 @@ function TaqueriaListViewModel() {
     } else {
       // filter the Taquerias array and store in matches variable
       matches = ko.utils.arrayFilter(self.Taquerias(), function(item) {
-        // lowercase the taqueria name to eliminate case sensitivity
-        let current_name = item.name().toLowerCase();
+        // // lowercase the taqueria name to eliminate case sensitivity
+        let current_name = util.clean_string(item.name());
         // if filter term is in current name, return true to include the current Taqueria as a match
         return current_name.includes(filter);
       });
@@ -108,12 +135,12 @@ function TaqueriaListViewModel() {
 
 }
 
-// maybe i shoudl wrap this in a window.load to ensure it executes after scripts ready
+// launch the main taqueria app with this publicly accessible name
 var taqueria_app = new TaqueriaListViewModel();
 // apply the data bindings
 ko.applyBindings(taqueria_app);
 
-// Google Maps Init
+// Google Maps Module
 
 var gmap = {
   map: {},
@@ -123,14 +150,15 @@ var gmap = {
   error_codes: {
     api_not_loaded: 'Google Maps API did not load. Please check your connection and reload the page'
   },
-  init_map: function() {
+  init_map: function(locations_data) {
     /*
     Instantiates the google map and displays the starting markers
-    Args: na
+    Args: locations_data (array) - an array of location data objects.
+          Should have properties like this example:
+          {name: 'Some Place', location: {lat: 32.21, lng 12.231}}
     Return: na
     */
     // starting coordinates for san jose,ca
-
     let start_loc = {
       lat: 37.3361,
       lng: -121.89100000000002
@@ -150,6 +178,18 @@ var gmap = {
 
       // instantiate an infowindow to populate place details with
       gmap.info_window = new google.maps.InfoWindow();
+
+      locations_data.forEach(function(current_item) {
+        // instantiate a google map marker for the currrent taqueria
+        let current_marker = gmap.make_marker(current_item.location, current_item.name);
+        // store marker in the gmap module's markers array
+        gmap.markers.push(current_marker);
+      });
+
+      // // instantiate a google map marker for the currrent taqueria
+      // let current_marker = gmap.make_marker(current_item.location, current_item.name);
+      // // store marker in the gmap module's markers array
+      // gmap.markers.push(current_marker);
 
       // display all the markers
       gmap.show_all_markers();
@@ -203,17 +243,43 @@ var gmap = {
   show_marker: function(marker) {
     /*
     Displays one specific marker on the map.
-    Args: Marker to display on the map (obj)
+    Args: Marker (obj)- marker to display on the map
     Return: na
     */
     // shorthand to the map
-    var map = gmap.map;
+    let map = gmap.map;
     // bounds to extend the map with our new marker location
-    var bounds = new google.maps.LatLngBounds();
+    let bounds = new google.maps.LatLngBounds();
     // add the marker to the map
     marker.setMap(map);
     // extend the bounds with the marker location
     bounds.extend(marker.position);
+    // fit the map with the new bounds
+    map.fitBounds(bounds);
+  },
+  hide_marker: function(marker) {
+    /*
+    Hides one specific marker on the map.
+    Args: Marker (obj) - marker to hide on the map
+    Return: na
+    */
+    // shorthand to the map
+    let map = gmap.map;
+    // bounds to extend the map with our new marker location
+    let bounds = new google.maps.LatLngBounds();
+    // remove the marker from the map
+    marker.setMap(null);
+
+    // Recompute the bounds of the map
+    for (let i = 0; i < markers.length; i+=1) {
+      // cache ref to the current marker
+      let current_marker = markers[i];
+      // only extend bounds with visible markers' positions
+      if (current_marker.getMap()) {
+        // fits the map bounds to the marker
+        bounds.extend(current_marker.position);
+      }
+    }
     // fit the map with the new bounds
     map.fitBounds(bounds);
   },
