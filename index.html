@@ -36,6 +36,9 @@
               <li class="nav-item">
                 <a class="nav-link disabled" href="#">Map Only</a>
               </li>
+              <li class="nav-item">
+                <a class="nav-link disabled" href="#">Reset</a>
+              </li>
             </ul>
             <form class="form-inline mt-2 mt-md-0">
               <input class="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search">
@@ -56,24 +59,11 @@
 
             <!-- List View -->
             <div class="col-sm-4 lg-height-100 sm-height-30 bg-secondary overflow-scroll">
-              <ul class="list-group">
-                <li class="list-group-item">
-                  <h5>Someone's Taqueria</h5>
-                  <p>
-                    Some description
+              <ul data-bind="foreach: Taquerias" class="list-group">
+                <li data-bind="attr: {id: $index}" class="list-group-item">
+                  <h5 data-bind="text: name"></h5>
+                  <p data-bind="text: foursquare_id">
                   </p>
-                </li>
-                <li class="list-group-item">
-                  Someone's Taqueria
-                </li>
-                <li class="list-group-item">
-                  Someone's Taqueria
-                </li>
-                <li class="list-group-item">
-                  Someone's Taqueria
-                </li>
-                <li class="list-group-item">
-                  Someone's Taqueria
                 </li>
               </ul>
 
