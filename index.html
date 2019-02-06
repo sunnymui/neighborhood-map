@@ -41,8 +41,7 @@
               </li>
             </ul>
             <form class="form-inline mt-2 mt-md-0">
-              <input class="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search">
-              <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+              <input data-bind="textInput: current_filter" class="form-control mr-sm-2" type="text" placeholder="Filter by Name" aria-label="Filter">
             </form>
           </div>
         </nav>
@@ -59,7 +58,7 @@
 
             <!-- List View -->
             <div class="col-sm-4 lg-height-100 sm-height-30 bg-secondary overflow-scroll">
-              <ul data-bind="foreach: Taquerias" class="list-group">
+              <ul data-bind="foreach: filtered_Taquerias" class="list-group">
                 <li data-bind="attr: {id: $index}" class="list-group-item">
                   <h5 data-bind="text: name"></h5>
                   <p data-bind="text: foursquare_id">

@@ -29,7 +29,7 @@ function TaqueriaListViewModel() {
   // tracks if an error occured and the type
   self.error_triggered = ko.observable();
   // tracks the current search term to filter Taquerias array by
-  self.current_filter= ko.observable();
+  self.current_filter = ko.observable('');
 
   // OPERATIONS
 
@@ -78,13 +78,25 @@ function TaqueriaListViewModel() {
     Args: na
     Return: matches (observableArray / obj) - matching Taquerias with a name matching the filter term
     */
-    // filter the Taquerias array and store in matches variable
-    let matches = ko.utils.arrayFilter(self.Taquerias, function(current_Taqueria) {
-      // lowercase the taqueria name to eliminate case sensitivity
-      let current_name = current_Taqueria.name().toLowerCase();
-      // if filter term is in current name, return true to include the current Taqueria as a match
-      return current_name.includes(self.current_filter);
-    });
+
+    // inputted text to filter taqueria names by
+    let filter = self.current_filter().toLowerCase();
+    // array to hold matching taquerias
+    let matches = [];
+
+    // check if a filter term has even been entered
+    if (!filter) {
+      // show the full taquerias list
+      matches = self.Taquerias();
+    } else {
+      // filter the Taquerias array and store in matches variable
+      matches = ko.utils.arrayFilter(self.Taquerias(), function(item) {
+        // lowercase the taqueria name to eliminate case sensitivity
+        let current_name = item.name().toLowerCase();
+        // if filter term is in current name, return true to include the current Taqueria as a match
+        return current_name.includes(filter);
+      });
+    }
 
     return matches;
   }, self);
