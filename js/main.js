@@ -142,6 +142,8 @@ var gmap = {
     // to change the colors back and forth.
     marker.addListener('mouseover', function() {
       this.setIcon(highlighted_icon);
+      // show info window on hover
+      gmap.show_info_window(this, gmap.info_window);
     });
     marker.addListener('mouseout', function() {
       this.setIcon(default_icon);
@@ -248,7 +250,7 @@ var gmap = {
       new google.maps.Size(21,34));
     return markerImage;
   },
-  get_places_details: function(marker, infowindow) {
+  get_place_details: function(marker, infowindow) {
     /*
     This is the PLACE DETAILS search - it's the most detailed so it's only
     executed when a marker is selected, indicating the user wants more
@@ -257,9 +259,11 @@ var gmap = {
           infoWindow (obj) - the infoWindow instance to add detail info to
     Return: na
     */
-    var service = new google.maps.places.PlacesService(map);
+    // create a places service api interface
+    let place_service = new google.maps.places.PlacesService(gmap.map);
 
-    service.getDetails({
+    // make the places service request
+    place_service.getDetails({
       placeId: marker.id
     }, function(place, status) {
       if (status === google.maps.places.PlacesServiceStatus.OK) {
@@ -357,6 +361,7 @@ var gmap = {
      one infowindow which will open at the marker that is clicked, and populate based
      on that markers position.
     */
+
     // Check to make sure the infowindow is not already opened on this marker.
     if (infowindow.marker != marker) {
       // Clear the infowindow content to give the streetview time to load.
@@ -583,9 +588,11 @@ function TaqueriaListViewModel() {
 
     // shortcut to the index of the current Taqueria
     let index = Taqueria.index();
+    // cache reference to the corresponding gmap marker
+    let current_marker = gmap.markers[index];
 
     // show the corresponding street view panorama
-    gmap.get_panorama(gmap.markers[index]);
+    gmap.get_panorama(current_marker);
 
     // display the modal dialog box view
     $('#details').modal('toggle');
@@ -609,6 +616,17 @@ function TaqueriaListViewModel() {
 
     return ready;
   });
+
+  self.show_mouseover_view = function(current_element){
+    /*
+    Shows mouseover info in the map view for corresponding elements.
+    Args: current_element (obj) - the Taqueria that triggered the function
+    Return: na
+    */
+    let current_index = current_element.index();
+    // show the corresponding info window in the map view
+    gmap.show_info_window(gmap.markers[current_index], gmap.info_window);
+  };
 
   self.reset_view = function() {
     /*

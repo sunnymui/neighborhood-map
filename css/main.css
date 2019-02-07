@@ -131,6 +131,10 @@ textarea {
     min-width: 16em;
   }
 
+  .list-group-item:hover {
+    /* hover effect */
+    background: #d0eff6;
+  }
 
   /* for large screens or landscape view mobile */
   @media(min-width: 576px) {

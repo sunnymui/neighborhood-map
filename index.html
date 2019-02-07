@@ -58,7 +58,7 @@
             <!-- List View -->
             <div class="col-sm-4 lg-height-100 sm-height-30 overflow-scroll">
               <ul data-bind="foreach: filtered_Taquerias" class="list-group">
-                <li data-bind="attr: {id: $index}" class="list-group-item">
+                <li data-bind="attr: {id: $index}, event: {mouseover: $parent.show_mouseover_view}" class="list-group-item">
                   <h5 data-bind="text: name"></h5>
                   <p data-bind=""></p>
                   <button data-bind="click: $parent.show_details" data-toggle="modal" data-target="#details" type="button" class="btn btn-outline-info btn-sm">View Details</button>
