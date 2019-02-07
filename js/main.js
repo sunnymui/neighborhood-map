@@ -296,6 +296,40 @@ var gmap = {
       }
     });
   },
+  get_panorama: function(marker) {
+    var streetViewService = new google.maps.StreetViewService();
+    var radius = 50;
+
+    // Use streetview service to get the closest streetview image within
+    // 50 meters of the markers position
+    let thing = streetViewService.getPanoramaByLocation(marker.position, radius, gmap.get_street_view);
+    console.log(thing);
+  },
+  get_street_view: function(data, status) {
+    if (status == google.maps.StreetViewStatus.OK) {
+      var nearStreetViewLocation = data.location.latLng;
+      // var heading = google.maps.geometry.spherical.computeHeading(
+      //   nearStreetViewLocation, marker.position);
+      var panoramaOptions = {
+        position: nearStreetViewLocation,
+        // pov: {
+        //   heading: 170,
+        //   pitch: 30
+        // },
+        linksControl: false,
+        enableCloseButton: false,
+        addressControl: false,
+        panControl: false,
+        zoomControl: false,
+        fullscreenControl: false,
+        motionTrackingControl: false
+      };
+      var panorama = new google.maps.StreetViewPanorama(
+        document.getElementById('pano'), panoramaOptions);
+    } else {
+      console.log('no street view found');
+    }
+  },
   show_info_window: function(marker, infowindow) {
     /*
     This function populates the infowindow when the marker is clicked. We populate
@@ -305,48 +339,48 @@ var gmap = {
     // Check to make sure the infowindow is not already opened on this marker.
     if (infowindow.marker != marker) {
       // Clear the infowindow content to give the streetview time to load.
-      infowindow.setContent('');
+      infowindow.setContent('<h5>'+marker.title+'</h5>');
       infowindow.marker = marker;
       // Make sure the marker property is cleared if the infowindow is closed.
       infowindow.addListener('closeclick', function() {
         infowindow.marker = null;
       });
-      var streetViewService = new google.maps.StreetViewService();
-      var radius = 50;
+
+      // var streetViewService = new google.maps.StreetViewService();
+      // var radius = 50;
       // In case the status is OK, which means the pano was found, compute the
       // position of the streetview image, then calculate the heading, then get a
       // panorama from that and set the options
-      function getStreetView(data, status) {
-
-        if (status == google.maps.StreetViewStatus.OK) {
-          var nearStreetViewLocation = data.location.latLng;
-          var heading = google.maps.geometry.spherical.computeHeading(
-            nearStreetViewLocation, marker.position);
-            infowindow.setContent('<div>' + marker.title + '</div><div id="pano"></div>');
-            var panoramaOptions = {
-              position: nearStreetViewLocation,
-              pov: {
-                heading: heading,
-                pitch: 30
-              },
-              linksControl: false,
-              enableCloseButton: false,
-              addressControl: false,
-              panControl: false,
-              zoomControl: false,
-              fullscreenControl: false,
-              motionTrackingControl: false
-            };
-          var panorama = new google.maps.StreetViewPanorama(
-            document.getElementById('pano'), panoramaOptions);
-        } else {
-          infowindow.setContent('<div>' + marker.title + '</div>' +
-            '<div>No Street View Found</div>');
-        }
-      }
-      // Use streetview service to get the closest streetview image within
-      // 50 meters of the markers position
-      streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
+      // function getStreetView(data, status) {
+      //
+      //   if (status == google.maps.StreetViewStatus.OK) {
+      //     var nearStreetViewLocation = data.location.latLng;
+      //     var heading = google.maps.geometry.spherical.computeHeading(
+      //       nearStreetViewLocation, marker.position);
+      //       var panoramaOptions = {
+      //         position: nearStreetViewLocation,
+      //         pov: {
+      //           heading: heading,
+      //           pitch: 30
+      //         },
+      //         linksControl: false,
+      //         enableCloseButton: false,
+      //         addressControl: false,
+      //         panControl: false,
+      //         zoomControl: false,
+      //         fullscreenControl: false,
+      //         motionTrackingControl: false
+      //       };
+      //     // var panorama = new google.maps.StreetViewPanorama(
+      //     //   document.getElementById('pano'), panoramaOptions);
+      //   } else {
+      //     infowindow.setContent('<div>' + marker.title + '</div>' +
+      //       '<div>No Street View Found</div>');
+      //   }
+      // }
+      // // Use streetview service to get the closest streetview image within
+      // // 50 meters of the markers position
+      // streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
       // Open the infowindow on the correct marker.
       infowindow.open(gmap.map, marker);
     }
@@ -552,6 +586,11 @@ function TaqueriaListViewModel() {
     */
     // set the current taqueria as the passed in one that triggered the function
     self.currently_viewing_Taqueria(Taqueria);
+
+    // shortcut to the index of the current Taqueria
+    let index = Taqueria.index();
+
+    gmap.get_panorama(gmap.markers[index]);
 
     // display the modal dialog box view
     $('#details').modal('toggle');
