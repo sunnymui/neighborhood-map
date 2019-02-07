@@ -19,133 +19,11 @@ var util = {
   }
 };
 
-// run the main app on window loaded
-// Knockout Web App
-
-function Taqueria(data){
-  // stores the index identifier for easy accessibility
-  this.index = ko.observable(data.index);
-  // stores the name string of the taqueria
-  this.name = ko.observable(data.name);
-  // store lat lng location obj
-  this.location = ko.observable(data.location);
-  // store foursquare place id
-  this.foursquare_id = ko.observable(data.foursquare_id);
-  // stores details already loaded by api
-  this.detail_cache = ko.observable();
-}
-
-function TaqueriaListViewModel() {
-  // DATA
-  let self = this;
-  const init_data_url = 'https://sunnymui.github.io/neighborhood-map/js/data.js';
-
-  // array to store each taqueria listing to be displayed
-  self.Taquerias = ko.observableArray();
-
-  // STATE
-
-  // tracks the currently selected taqueria to view info for
-  self.current_taqueria = ko.observable();
-  // tracks if an error occured and the type
-  self.error_triggered = ko.observable();
-  // tracks the current search term to filter Taquerias array by
-  self.entered_terms = ko.observable('');
-  // tracks the current search term to filter Taquerias array by
-  self.current_filter = ko.observable('');
-
-  // OPERATIONS
-
-  self.get_init_data = function(data_url){
-    /*
-    Grabs the initial data from a specific url and makes it usable for our app
-    Args: data_url (string) - the http/https url to fetch info from
-    Return: na
-    */
-    // fetch the initial starting data
-    fetch(data_url)
-      .then(function(response){
-        // output response as json obj
-        return response.json();
-      })
-      .then(function(init_data){
-        // grab the array of raw data
-        let response_array = init_data.response;
-        // loop through the data and instantiate Taqueria objs
-        for (let i = 0; i < response_array.length; i+=1) {
-          // shorthand for the current data item
-          let current_item = response_array[i];
-          // create a Taqueria instance with the current item's data
-          let current_Taqueria = new Taqueria({
-              index: i,
-              name: current_item.name,
-              location: current_item.location,
-              foursquare_id: current_item.id
-          });
-          // push the Taqueria to the main app's Taquerias array
-          self.Taquerias.push(current_Taqueria);
-        }
-        // start the google map module with the raw location data
-        gmap.init_map(response_array);
-      }
-      // TODO add some error catching
-    );
-  };
-  self.set_current_filter_to_entered_terms = function() {
-    /*
-    Sets the current filter to the value inputted into entered terms.
-    Args: na
-    Return: na
-    */
-    self.current_filter(self.entered_terms());
-  };
-
-  self.filtered_Taquerias = ko.computed(function() {
-    /*
-    Filters the taquerias by the filter term and returns matches
-    Args: na
-    Return: matches (observableArray / obj) - matching Taquerias with a name matching the filter term
-    */
-    // strip filter text of extra whitespace before/after, lowercase so it isn't case sensitive
-    let filter = util.clean_string(self.current_filter());
-    // array to hold matching taquerias
-    let matches = [];
-
-    // check if a filter term has even been entered
-    if (!filter) {
-      // show the full taquerias list
-      matches = self.Taquerias();
-    } else {
-      // filter the Taquerias array and store in matches variable
-      matches = ko.utils.arrayFilter(self.Taquerias(), function(item) {
-        // // lowercase the taqueria name to eliminate case sensitivity
-        let current_name = util.clean_string(item.name());
-        // if filter term is in current name, return true to include the current Taqueria as a match
-        return current_name.includes(filter);
-      });
-    }
-
-    return matches;
-  }, self);
-
-  // Initialize View Model Defaults
-  self.get_init_data(init_data_url);
-
-  // store all the taqueria instances in the startin taquerias array
-
-}
-
-// launch the main taqueria app with this publicly accessible name
-var taqueria_app = new TaqueriaListViewModel();
-// apply the data bindings
-ko.applyBindings(taqueria_app);
-
 // Google Maps Module
 
 var gmap = {
   map: {},
   markers: [],
-  filtered_markers: [],
   info_window: {},
   error_codes: {
     api_not_loaded: 'Google Maps API did not load. Please check your connection and reload the page'
@@ -186,11 +64,6 @@ var gmap = {
         gmap.markers.push(current_marker);
       });
 
-      // // instantiate a google map marker for the currrent taqueria
-      // let current_marker = gmap.make_marker(current_item.location, current_item.name);
-      // // store marker in the gmap module's markers array
-      // gmap.markers.push(current_marker);
-
       // display all the markers
       gmap.show_all_markers();
     }
@@ -215,6 +88,12 @@ var gmap = {
       animation: google.maps.Animation.DROP,
       icon: gmap.make_marker_icon('0091ff'),
     });
+
+    // Create an onclick event to open the info window at each marker.
+    marker.addListener('click', function() {
+      gmap.show_info_window(this, gmap.info_window);
+    });
+
     // return the created marker
     return marker;
   },
@@ -240,20 +119,23 @@ var gmap = {
     // fit the map to the bounds of the marker locaitons
     map.fitBounds(bounds);
   },
-  show_marker: function(marker) {
+  show_markers: function(marker_array) {
     /*
-    Displays one specific marker on the map.
-    Args: Marker (obj)- marker to display on the map
+    Displays specific markers on the map.
+    Args: Marker_array (array)- marker(s) to display on the map
     Return: na
     */
     // shorthand to the map
     let map = gmap.map;
     // bounds to extend the map with our new marker location
     let bounds = new google.maps.LatLngBounds();
-    // add the marker to the map
-    marker.setMap(map);
-    // extend the bounds with the marker location
-    bounds.extend(marker.position);
+    // Extend the boundaries of the map for each marker and display the marker
+    for (let i = 0; i < marker_array.length; i+=1) {
+      // set the map to show the marker on the current map
+      marker_array[i].setMap(map);
+      // fits the map bounds to the marker
+      bounds.extend(marker_array[i].position);
+    }
     // fit the map with the new bounds
     map.fitBounds(bounds);
   },
@@ -270,7 +152,7 @@ var gmap = {
     // remove the marker from the map
     marker.setMap(null);
 
-    // Recompute the bounds of the map
+    // Recompute the bounds of the map, accounting for now hidden markers
     for (let i = 0; i < markers.length; i+=1) {
       // cache ref to the current marker
       let current_marker = markers[i];
@@ -282,6 +164,22 @@ var gmap = {
     }
     // fit the map with the new bounds
     map.fitBounds(bounds);
+  },
+  hide_all_markers: function() {
+    /*
+    Hides all the markers in the markers array fom the map.
+    Args: na
+    Return: na
+    */
+    // shorthand for the markers array
+    let markers = gmap.markers;
+    // shorthand to the map
+    let map = gmap.map;
+    // Extend the boundaries of the map for each marker and display the marker
+    for (let i = 0; i < markers.length; i+=1) {
+      // hide the marker from the current map
+      markers[i].setMap(null);
+    }
   },
   make_marker_icon: function(markerColor) {
     /*
@@ -348,7 +246,6 @@ var gmap = {
       }
     });
   },
-
   show_info_window: function(marker, infowindow) {
     /*
     This function populates the infowindow when the marker is clicked. We'll only allow
@@ -370,6 +267,7 @@ var gmap = {
       // position of the streetview image, then calculate the heading, then get a
       // panorama from that and set the options
       function getStreetView(data, status) {
+        console.log(google.maps.StreetViewStatus.OK);
 
         if (status == google.maps.StreetViewStatus.OK) {
           var nearStreetViewLocation = data.location.latLng;
@@ -381,7 +279,14 @@ var gmap = {
               pov: {
                 heading: heading,
                 pitch: 30
-              }
+              },
+              linksControl: false,
+              enableCloseButton: false,
+              addressControl: false,
+              panControl: false,
+              zoomControl: false,
+              fullscreenControl: false,
+              motionTrackingControl: false
             };
           var panorama = new google.maps.StreetViewPanorama(
             document.getElementById('pano'), panoramaOptions);
@@ -394,7 +299,7 @@ var gmap = {
       // 50 meters of the markers position
       streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
       // Open the infowindow on the correct marker.
-      infowindow.open(map, marker);
+      infowindow.open(gmap.map, marker);
     }
   }
 };
@@ -453,3 +358,157 @@ fetch(request)
       window.alert('api no worky');
         // Code for handling errors
     });
+
+
+// Knockout Neigborhood Map Web App
+
+function Taqueria(data) {
+  // stores the index identifier for easy accessibility
+  this.index = ko.observable(data.index);
+  // stores the name string of the taqueria
+  this.name = ko.observable(data.name);
+  // store lat lng location obj
+  this.location = ko.observable(data.location);
+  // store foursquare place id
+  this.foursquare_id = ko.observable(data.foursquare_id);
+  // stores details already loaded by api
+  this.detail_cache = ko.observable();
+}
+
+function TaqueriaListViewModel() {
+  // DATA
+  let self = this;
+  const init_data_url = 'https://sunnymui.github.io/neighborhood-map/js/data.js';
+
+  // array to store each taqueria listing to be displayed
+  self.Taquerias = ko.observableArray();
+
+  // STATE
+
+  // tracks the currently selected taqueria to view info for
+  self.current_taqueria = ko.observable();
+  // tracks if an error occured and the type
+  self.error_triggered = ko.observable();
+  // tracks the current search term to filter Taquerias array by
+  self.entered_terms = ko.observable('');
+  // tracks the current search term to filter Taquerias array by
+  self.current_filter = ko.observable('');
+  // flag to track when starting data is ready and init'd to render the views
+  self.ready = ko.observable(false);
+
+  // OPERATIONS
+
+  self.get_init_data = function(data_url){
+    /*
+    Grabs the initial data from a specific url and makes it usable for our app
+    Args: data_url (string) - the http/https url to fetch info from
+    Return: na
+    */
+    // fetch the initial starting data
+    fetch(data_url)
+      .then(function(response){
+        // output response as json obj
+        return response.json();
+      })
+      .then(function(init_data){
+        // grab the array of raw data
+        let response_array = init_data.response;
+        // loop through the data and instantiate Taqueria objs
+        for (let i = 0; i < response_array.length; i+=1) {
+          // shorthand for the current data item
+          let current_item = response_array[i];
+          // create a Taqueria instance with the current item's data
+          let current_Taqueria = new Taqueria({
+              index: i,
+              name: current_item.name,
+              location: current_item.location,
+              foursquare_id: current_item.id
+          });
+          // push the Taqueria to the main app's Taquerias array
+          self.Taquerias.push(current_Taqueria);
+        }
+        // start the google map module with the raw location data
+        gmap.init_map(response_array);
+        // set ready status to true so rendering views can start
+        self.ready(true);
+      }
+      // TODO add some error catching
+    );
+  };
+
+  self.update_map = function(updated_Taquerias) {
+    /*
+    Update the map display to show the passed in Taquerias.
+    Args: updated_Taquerias (array) - array of taqueria instances to show on the map
+    Return: na
+    */
+    // hide all the current markers being shown
+    gmap.hide_all_markers();
+    // grab an array of corresponding Markers from the updated Taquerias list
+    let filtered_markers = updated_Taquerias.map(current_Taqueria => gmap.markers[current_Taqueria.index()]);
+    // show the filtered Markers on the map
+    gmap.show_markers(filtered_markers);
+  };
+
+  self.set_current_filter_to_entered_terms = function() {
+    /*
+    Sets the current filter to the value inputted into entered terms.
+    Args: na
+    Return: na
+    */
+    self.current_filter(self.entered_terms());
+  };
+
+  self.filtered_Taquerias = ko.computed(function() {
+    /*
+    Filters the taquerias by the filter term and returns matches
+    Args: na
+    Return: matches (observableArray / obj) - matching Taquerias with a name matching the filter term
+    */
+    // make sure gmap and taquerias model is ready to go before rendering
+    if (self.ready()) {
+      // strip filter text of extra whitespace before/after, lowercase so it isn't case sensitive
+      let filter = util.clean_string(self.current_filter());
+      // array to hold matching taquerias
+      let matches = [];
+
+      // check if a filter term has even been entered
+      if (!filter) {
+        // show the full taquerias list
+        matches = self.Taquerias();
+      } else {
+        // filter the Taquerias array and store in matches variable
+        matches = ko.utils.arrayFilter(self.Taquerias(), function(item) {
+          // // lowercase the taqueria name to eliminate case sensitivity
+          let current_name = util.clean_string(item.name());
+          // if filter term is in current name, return true to include the current Taqueria as a match
+          return current_name.includes(filter);
+        });
+      }
+      // update the map view with the filtered matches
+      self.update_map(matches);
+
+      return matches;
+    }
+  }, self);
+
+  self.reset_view = function() {
+    /*
+    Resets the view to the initial state with starting data.
+    Args: na
+    Return: na
+    */
+    // only have to set current filter to blank since view renders everything
+    // starting from that observable
+    self.current_filter('');
+  };
+
+  // Initialize View Model Defaults
+  self.get_init_data(init_data_url);
+
+}
+
+// launch the main taqueria app with this publicly accessible name
+var taqueria_app = new TaqueriaListViewModel();
+// apply the data bindings
+ko.applyBindings(taqueria_app);

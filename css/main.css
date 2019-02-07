@@ -125,6 +125,13 @@ textarea {
     height: 30%;
   }
 
+  #pano {
+    /* minimum useful size for the street view photo */
+    min-height: 16em;
+    min-width: 16em;
+  }
+
+
   /* for large screens or landscape view mobile */
   @media(min-width: 576px) {
     .lg-height-100 {

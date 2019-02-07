@@ -4,8 +4,8 @@
     "id": "4bedef20767dc9b6eebdd3e9",
     "name": "Adelita’s Taqueria",
     "location": {
-        "lat": 37.27514889043388,
-        "lng": -121.92368453708735
+        "lat": 37.275151,
+        "lng": -121.923740
     }
   },{
     "id": "4a7270a5f964a52014db1fe3",
@@ -32,8 +32,8 @@
     "id": "4ae9eebff964a520c8b721e3",
     "name": "Tequilas Taqueria",
     "location": {
-        "lat": 37.30494070940226,
-        "lng": -121.92139322475792
+        "lat": 37.304927,
+        "lng": -121.921147
     }
   }
 ]
