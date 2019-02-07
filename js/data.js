@@ -4,8 +4,8 @@
     "id": "4bedef20767dc9b6eebdd3e9",
     "name": "Adelita’s Taqueria",
     "location": {
-        "lat": 37.275151,
-        "lng": -121.923740
+        "lat": 37.275180,
+        "lng": -121.923745
     }
   },{
     "id": "4a7270a5f964a52014db1fe3",

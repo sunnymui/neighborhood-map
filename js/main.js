@@ -38,8 +38,11 @@ var gmap = {
   map: {},
   markers: [],
   info_window: {},
+  panorama: {},
   error_codes: {
-    api_not_loaded: 'Google Maps API did not load. Please check your connection and reload the page'
+    api_not_loaded: "Google Maps couldn't load. Check your internet connection and reload.",
+    street_view_failed: 'Street View could not connect. You can try again later.',
+    street_view_none: 'No Street View available for that location. Sorry.'
   },
   object_cache: [],
   // uses ES6 simulated default named parameters, source:
@@ -86,6 +89,7 @@ var gmap = {
       // instantiate an infowindow to populate place details with
       gmap.info_window = new google.maps.InfoWindow();
 
+      // create markers per location
       locations_data.forEach(function(current_item) {
         // instantiate a google map marker for the currrent taqueria
         let current_marker = gmap.make_marker(current_item.location, current_item.name);
@@ -98,7 +102,6 @@ var gmap = {
         gmap.object_cache.push(current_cached_obj);
       });
 
-      console.log(gmap.object_cache);
       // display all the markers
       gmap.show_all_markers();
     }
@@ -297,37 +300,55 @@ var gmap = {
     });
   },
   get_panorama: function(marker) {
-    var streetViewService = new google.maps.StreetViewService();
-    var radius = 50;
+    /*
+    Get a panorama from the street view service for a marker.
+    Args: marker (obj) - marker to get location from for street views
+    Return: na
+    */
 
-    // Use streetview service to get the closest streetview image within
-    // 50 meters of the markers position
-    let thing = streetViewService.getPanoramaByLocation(marker.position, radius, gmap.get_street_view);
-    console.log(thing);
+    // panorama request options
+    let pano_options = {
+      // marker's lat-lng
+      location: marker.position,
+      // get the outside view only
+      source: google.maps.StreetViewSource.OUTDOOR
+    };
+    // open a google maps street view api interface
+    let street_view_service = new google.maps.StreetViewService();
+
+    // // get the panorama for this marker from the street view api
+    street_view_service.getPanorama(pano_options, gmap.process_street_view_data);
   },
-  get_street_view: function(data, status) {
+  process_street_view_data: function(data, status) {
     if (status == google.maps.StreetViewStatus.OK) {
-      var nearStreetViewLocation = data.location.latLng;
-      // var heading = google.maps.geometry.spherical.computeHeading(
-      //   nearStreetViewLocation, marker.position);
-      var panoramaOptions = {
-        position: nearStreetViewLocation,
-        // pov: {
-        //   heading: 170,
-        //   pitch: 30
-        // },
+      // location to center the panorama on
+      let view_location = data.location.latLng;
+      // config for panorama appearance
+      let panorama_options = {
+        position: view_location,
+        // the following show/hide default control overlays
         linksControl: false,
         enableCloseButton: false,
         addressControl: false,
         panControl: false,
-        zoomControl: false,
+        zoomControl: true,
         fullscreenControl: false,
         motionTrackingControl: false
       };
-      var panorama = new google.maps.StreetViewPanorama(
-        document.getElementById('pano'), panoramaOptions);
+      // get the pano element here in case it isn't in the dom at init load
+      let pano_element = document.getElementById('pano');
+      // generate the panorama and store it in case we need to fiddle with it
+      gmap.panorama = new google.maps.StreetViewPanorama(pano_element, panorama_options);
+      // trigger details ready flag in main app
+      taqueria_app.panorama_ready(true);
+
+    } else if (status == google.maps.StreetViewStatus.ZERO_RESULTS) {
+      // trigger an error in the main app view model
+      taqueria_app.error_triggered(gmap.error_codes.street_view_none);
     } else {
-      console.log('no street view found');
+      console.log('Street View request failed');
+      // trigger an error in the main app view model
+      taqueria_app.error_triggered(gmap.error_codes.street_view_failed);
     }
   },
   show_info_window: function(marker, infowindow) {
@@ -346,42 +367,7 @@ var gmap = {
         infowindow.marker = null;
       });
 
-      // var streetViewService = new google.maps.StreetViewService();
-      // var radius = 50;
-      // In case the status is OK, which means the pano was found, compute the
-      // position of the streetview image, then calculate the heading, then get a
-      // panorama from that and set the options
-      // function getStreetView(data, status) {
-      //
-      //   if (status == google.maps.StreetViewStatus.OK) {
-      //     var nearStreetViewLocation = data.location.latLng;
-      //     var heading = google.maps.geometry.spherical.computeHeading(
-      //       nearStreetViewLocation, marker.position);
-      //       var panoramaOptions = {
-      //         position: nearStreetViewLocation,
-      //         pov: {
-      //           heading: heading,
-      //           pitch: 30
-      //         },
-      //         linksControl: false,
-      //         enableCloseButton: false,
-      //         addressControl: false,
-      //         panControl: false,
-      //         zoomControl: false,
-      //         fullscreenControl: false,
-      //         motionTrackingControl: false
-      //       };
-      //     // var panorama = new google.maps.StreetViewPanorama(
-      //     //   document.getElementById('pano'), panoramaOptions);
-      //   } else {
-      //     infowindow.setContent('<div>' + marker.title + '</div>' +
-      //       '<div>No Street View Found</div>');
-      //   }
-      // }
-      // // Use streetview service to get the closest streetview image within
-      // // 50 meters of the markers position
-      // streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
-      // Open the infowindow on the correct marker.
+      // open info window at marker
       infowindow.open(gmap.map, marker);
     }
   }
@@ -478,6 +464,10 @@ function TaqueriaListViewModel() {
   self.current_filter = ko.observable('');
   // flag to track when starting data is ready and init'd to render the views
   self.ready = ko.observable(false);
+  // flag to track if street view panorama has finished loading
+  self.panorama_ready = ko.observable(false);
+  // // flag to track if details are ready to show
+  // self.details_ready = ko.observable(false);
 
   // OPERATIONS
 
@@ -584,17 +574,41 @@ function TaqueriaListViewModel() {
     Args: Taqueria (obj) - the Taqueria to view details for
     Return: na
     */
+
+    // reset ready state
+    self.panorama_ready(false);
+
     // set the current taqueria as the passed in one that triggered the function
     self.currently_viewing_Taqueria(Taqueria);
 
     // shortcut to the index of the current Taqueria
     let index = Taqueria.index();
 
+    // show the corresponding street view panorama
     gmap.get_panorama(gmap.markers[index]);
 
     // display the modal dialog box view
     $('#details').modal('toggle');
   };
+
+  self.details_ready = ko.computed(function() {
+    /*
+    Tracks whether details are ready to show visually. Used
+    for showing loading spinner.
+    Args: na
+    Return: ready (bool) - true if everything ready, false if not
+    */
+    // default to false
+    let ready = false;
+
+    // different api readiness flags to determine total readiness
+    if (self.panorama_ready()) {
+      // everything ready so set to true
+      ready = true;
+    }
+
+    return ready;
+  });
 
   self.reset_view = function() {
     /*
