@@ -81,17 +81,32 @@ var gmap = {
           name (string) - title to show when mousing over the marker
     Return: a Marker instance for the location (obj)
     */
+
+    // Create a default marker icon based on color
+    var default_icon = gmap.make_marker_icon('0091ff');
+    // Create a "highlighted location" marker color for when the user
+    // mouses over the marker.
+    var highlighted_icon = gmap.make_marker_icon('FFFF24');
+
     // Create a marker per location, and put into markers array.
     var marker = new google.maps.Marker({
       position: location,
       title: name,
       animation: google.maps.Animation.DROP,
-      icon: gmap.make_marker_icon('0091ff'),
+      icon: default_icon
     });
 
     // Create an onclick event to open the info window at each marker.
     marker.addListener('click', function() {
       gmap.show_info_window(this, gmap.info_window);
+    });
+    // Two event listeners - one for mouseover, one for mouseout,
+    // to change the colors back and forth.
+    marker.addListener('mouseover', function() {
+      this.setIcon(highlighted_icon);
+    });
+    marker.addListener('mouseout', function() {
+      this.setIcon(default_icon);
     });
 
     // return the created marker
@@ -248,7 +263,7 @@ var gmap = {
   },
   show_info_window: function(marker, infowindow) {
     /*
-    This function populates the infowindow when the marker is clicked. We'll only allow
+    This function populates the infowindow when the marker is clicked. We populate
      one infowindow which will open at the marker that is clicked, and populate based
      on that markers position.
     */
@@ -267,7 +282,6 @@ var gmap = {
       // position of the streetview image, then calculate the heading, then get a
       // panorama from that and set the options
       function getStreetView(data, status) {
-        console.log(google.maps.StreetViewStatus.OK);
 
         if (status == google.maps.StreetViewStatus.OK) {
           var nearStreetViewLocation = data.location.latLng;
@@ -349,10 +363,10 @@ fetch(request)
     })
     .then(function(the_json){
       let string_result = JSON.stringify(the_json);
-      // console.log(string_result);
+
       let bounds = the_json.response.suggestedBounds;
       let results = the_json.response.groups;
-      // console.log(results);
+
     })
     .catch(function() {
       window.alert('api no worky');
@@ -386,7 +400,7 @@ function TaqueriaListViewModel() {
   // STATE
 
   // tracks the currently selected taqueria to view info for
-  self.current_taqueria = ko.observable();
+  self.currently_viewing_Taqueria = ko.observable();
   // tracks if an error occured and the type
   self.error_triggered = ko.observable();
   // tracks the current search term to filter Taquerias array by
@@ -429,6 +443,9 @@ function TaqueriaListViewModel() {
         }
         // start the google map module with the raw location data
         gmap.init_map(response_array);
+        // start with this taqueria
+        self.currently_viewing_Taqueria(self.Taquerias()[0]);
+
         // set ready status to true so rendering views can start
         self.ready(true);
       }
@@ -444,8 +461,10 @@ function TaqueriaListViewModel() {
     */
     // hide all the current markers being shown
     gmap.hide_all_markers();
+
     // grab an array of corresponding Markers from the updated Taquerias list
     let filtered_markers = updated_Taquerias.map(current_Taqueria => gmap.markers[current_Taqueria.index()]);
+
     // show the filtered Markers on the map
     gmap.show_markers(filtered_markers);
   };
@@ -491,6 +510,19 @@ function TaqueriaListViewModel() {
       return matches;
     }
   }, self);
+
+  self.show_details = function(Taqueria) {
+    /*
+    Shows the details for a place in a modal window.
+    Args: Taqueria (obj) - the Taqueria to view details for
+    Return: na
+    */
+    // set the current taqueria as the passed in one that triggered the function
+    self.currently_viewing_Taqueria(Taqueria);
+
+    // display the modal dialog box view
+    $('#details').modal('toggle');
+  };
 
   self.reset_view = function() {
     /*
