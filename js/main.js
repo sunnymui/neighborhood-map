@@ -16,6 +16,19 @@ var util = {
                  // extended with missing ’ punctuation
                  .replace(/['!"#$%&\\'()\*+,\-\.\/:;’<=>?@\[\\\]\^_`{|}~']/g,"")
                  .replace(/\s{2,}/g," ");
+  },
+  is_empty_obj: function(obj) {
+    /*
+    Checks if an object is empty or contains stuff.
+    Source: https://coderwall.com/p/_g3x9q/how-to-check-if-javascript-object-is-empty
+    Args: obj (obj) - the object to Check
+    Return: true/false (bool) - true if empty, false if not an empty object
+    */
+    for(var key in obj) {
+        if(obj.hasOwnProperty(key))
+            return false;
+    }
+    return true;
   }
 };
 
@@ -27,6 +40,22 @@ var gmap = {
   info_window: {},
   error_codes: {
     api_not_loaded: 'Google Maps API did not load. Please check your connection and reload the page'
+  },
+  object_cache: [],
+  // uses ES6 simulated default named parameters, source:
+  // https://stackoverflow.com/questions/894860/set-a-default-parameter-value-for-a-javascript-function/46760685#46760685
+  Cache_obj: function({
+    marker = {},
+    panorama = {}
+  } = {}) {
+    /*
+    Constructor function for an object cache item to store already instantiated
+    gmap objects so we don't have to waste resources recreating things.
+    Args:
+    Return:
+    */
+    this.marker = marker;
+    this.panorama = panorama;
   },
   init_map: function(locations_data) {
     /*
@@ -60,10 +89,16 @@ var gmap = {
       locations_data.forEach(function(current_item) {
         // instantiate a google map marker for the currrent taqueria
         let current_marker = gmap.make_marker(current_item.location, current_item.name);
+        // initialize the object cache
+        let current_cached_obj = new gmap.Cache_obj({marker: current_marker});
+
         // store marker in the gmap module's markers array
         gmap.markers.push(current_marker);
+        // store the marker instance in the object cache
+        gmap.object_cache.push(current_cached_obj);
       });
 
+      console.log(gmap.object_cache);
       // display all the markers
       gmap.show_all_markers();
     }
