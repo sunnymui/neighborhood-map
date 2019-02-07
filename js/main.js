@@ -443,8 +443,6 @@ function TaqueriaListViewModel() {
         }
         // start the google map module with the raw location data
         gmap.init_map(response_array);
-        // start with this taqueria
-        self.currently_viewing_Taqueria(self.Taquerias()[0]);
 
         // set ready status to true so rendering views can start
         self.ready(true);
