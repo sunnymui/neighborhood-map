@@ -411,22 +411,52 @@ var gmap = {
   }
 };
 
-// import the starting data
+// Foursquare API Module
 
-// build the listings obj into a object array for storing all the current stuff
-
-// render the listings on the map
 var fsquare = {
-  client_details: {
+  client: {
     id: 'NFVFONNFXKXHUZIRELJPUT5OVPJYJASJLDU3GUGPABYLRJY5',
     secret:'UCVSJOTSDRFKMBWTYIGTXFUOO45ECAZCQLDU4ZAN301IBU2G',
     api_version: '20180129',
   },
-  api_parameters: {
-
+  endpoints: {
+    details: 'https://api.foursquare.com/v2/venues/'
   },
-  get_details: function() {
+  get_details: function(id) {
+    /*
+    Gets the Foursquare place details for a specific place by id.
+    Args: id (string) - id string for the foursquare place
+    Return: na
+    */
+    // compose the api request
+    let request = fsquare.endpoints.details +
+                  id +
+                  '?client_id=' +
+                  fsquare.client.id +
+                  '&client_secret=' +
+                  fsquare.client.secret +
+                  '&v=' +
+                  fsquare.client.api_version;
 
+    // make a fetch request to the foursquare venue details api
+    fetch(request)
+        .then(function(response) {
+          // format response as json
+          return response.json();
+        })
+        .then(function(the_json){
+          // checks success on the foursquare response side
+          if (the_json.meta.code != '200') {
+            throw 'Could not retrieve FourSquare place details';
+          }
+          let string_result = JSON.stringify(the_json);
+          console.log(the_json);
+        })
+        .catch(function(error) {
+
+          console.log(error);
+            // Code for handling errors
+        });
   }
 };
 
@@ -637,6 +667,8 @@ function TaqueriaListViewModel() {
     gmap.get_panorama(current_marker);
     // show the corresponding place details
     gmap.get_place_details(current_marker);
+    // show the foursquare place details
+    fsquare.get_details(Taqueria.foursquare_id());
 
     // change appearnace of map marker
     gmap.highlight_marker(current_marker);
