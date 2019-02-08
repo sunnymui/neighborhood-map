@@ -131,6 +131,15 @@ textarea {
     min-width: 16em;
   }
 
+  .review {
+    /* So it doesn't take up tons of space */
+    max-height: 140px;
+  }
+
+  .review img {
+    max-width: 45px;
+  }
+
   .list-group-item:hover {
     /* hover effect */
     background: #d0eff6;

@@ -76,14 +76,56 @@
                 </div>
               </div>
               <div data-bind="with: currently_viewing_Taqueria, visible: details_ready" class="modal-content">
-                <div class="modal-header">
-                  <h5 data-bind="text: name" class="modal-title" id="details_title">Taqueria</h5>
+                <div class="modal-header bg-info">
+                  <h5 data-bind="text: name" class="modal-title text-light" id="details_title">Taqueria</h5>
                   <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                   </button>
                 </div>
-                <div data-bind="attr: {'data-index': index}" class="modal-body">
-                  <div id="pano"></div>
+                <div data-bind="" class="modal-body">
+                  <h6 class="text-muted">Google Place Details</h6>
+                  <ul data-bind="with: $parent.current_details" class="list-group list-group-flush">
+                    <li class="list-group-item"><em data-bind="text: address" ></em></li>
+                    <li data-bind="text: phone" class="list-group-item"></li>
+                    <li class="list-group-item">
+                      Google Rating: <span data-bind="text: rating" class="badge badge-primary"></span>
+                    </li>
+                    <li class="list-group-item">
+                      <a data-bind="text: website, attr: {href: website}" ></a>
+                    </li>
+                    <li class="list-group-item">
+                      <div class="accordion" id="hours">
+                        <div>
+                           <div id="hours-heading">
+                             <h2>
+                               <button class="btn btn-outline-secondary collapsed" type="button" data-toggle="collapse" data-target="#hours-details" aria-expanded="true" aria-controls="hours-details">
+                                 See Business Hours
+                               </button>
+                             </h2>
+                           </div>
+                           <div id="hours-details" class="collapse" aria-labelledby="hours-heading" data-parent="#hours">
+                             <ul data-bind="foreach: hours">
+                               <li data-bind="text: $data"></li>
+                             </ul>
+                           </div>
+                         </div>
+                      </div>
+                    </li>
+                    <li class="list-group-item overflow-auto review">
+                      <span class="badge badge-info">Highlighted Review</span>
+                      <blockquote class="blockquote">
+                        <p data-bind="text: reviews[0].text"></p>
+                        <footer class="blockquote-footer">
+                          <img data-bind="attr: {src: reviews[0].profile_photo_url}"/>
+                          <span data-bind="text: reviews[0].author_name"></span>
+                        </footer>
+                      </blockquote>
+                    </li>
+                  </ul>
+                  <div class="container mt-3">
+                    <h6 class="text-muted">Google Street View</h6>
+                    <div id="pano"></div>
+                  </div>
                 </div>
                 <div class="modal-footer">
                   <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>

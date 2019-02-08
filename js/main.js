@@ -44,7 +44,8 @@ var gmap = {
   error_codes: {
     api_not_loaded: "Google Maps couldn't load. Check your internet connection and reload.",
     street_view_failed: 'Street View could not connect. You can try again later.',
-    street_view_none: 'No Street View available for that location. Sorry.'
+    street_view_none: 'No Street View available for that location. Sorry.',
+    places_failed: 'Detailed Places info unavailable. Check your internet connection or try later.'
   },
   object_cache: [],
   // uses ES6 simulated default named parameters, source:
@@ -56,8 +57,8 @@ var gmap = {
     /*
     Constructor function for an object cache item to store already instantiated
     gmap objects so we don't have to waste resources recreating things.
-    Args:
-    Return:
+    Args: gmap objs to cache like marker obj, place data
+    Return: na
     */
     this.marker = marker;
     this.place_details = place_details;
@@ -100,7 +101,7 @@ var gmap = {
       // create markers per location
       locations_data.forEach(function(current_item) {
         // instantiate a google map marker for the currrent taqueria
-        let current_marker = gmap.make_marker(current_item.location, current_item.name);
+        let current_marker = gmap.make_marker(current_item.location, current_item.name, current_item.id.place);
         // initialize the object cache
         let current_cached_obj = new gmap.Cache_obj({marker: current_marker});
 
@@ -120,11 +121,12 @@ var gmap = {
       return;
     }
   },
-  make_marker: function(location, name) {
+  make_marker: function(location, name, id) {
     /*
     Creates a single marker object from a lat lng obj pair
     Args: location (obj) - {lat,lng} location pair
           name (string) - title to show when mousing over the marker
+          id (string) - place id for this marker
     Return: a Marker instance for the location (obj)
     */
 
@@ -133,7 +135,8 @@ var gmap = {
       position: location,
       title: name,
       animation: google.maps.Animation.DROP,
-      icon: gmap.default_icon
+      icon: gmap.default_icon,
+      id: id
     });
 
     // Create an onclick event to open the info window at each marker.
@@ -275,48 +278,76 @@ var gmap = {
           infoWindow (obj) - the infoWindow instance to add detail info to
     Return: na
     */
-
+    // get the index of the current marker in the markers array
     let current_marker_index = gmap.markers.indexOf(marker);
+    // shortcut to the object cache for place details
     let current_place_details = gmap.object_cache[current_marker_index].place_details;
-    if (util.is_empty_obj(current_place_details)) {
+    // check if place details have been cached
+    let current_place_not_cached = util.is_empty_obj(current_place_details);
 
+    // if place details aren't cached, fetch it from the places service api
+    if (current_place_not_cached) {
+      // create a places service api interface
+      let place_service = new google.maps.places.PlacesService(gmap.map);
+
+      // make the places service request
+      place_service.getDetails({
+        placeId: marker.id
+      }, function(place, status) {
+        if (status === google.maps.places.PlacesServiceStatus.OK) {
+          // will store the found information
+          let details = {};
+
+          // full name of the place
+          if (place.name) {
+            details.name = place.name;
+          }
+          // full formatted street address
+          if (place.formatted_address) {
+            details.address = place.formatted_address;
+          }
+          // phone including area code
+          if (place.formatted_phone_number) {
+            details.phone = place.formatted_phone_number;
+          }
+          // array of business hours by day in text strings
+          if (place.opening_hours) {
+            details.hours = place.opening_hours.weekday_text;
+            console.log(details.hours);
+          }
+          // photo of the business
+          if (place.photos) {
+            details.photos = place.photos[0].getUrl(
+                {maxHeight: 100, maxWidth: 200});
+          }
+          // array of reviews for the business
+          if (place.reviews) {
+            details.reviews = place.reviews;
+          }
+          // overall google rating out of 5
+          if (place.rating) {
+            details.rating = place.rating;
+          }
+          // official website
+          if (place.website) {
+            details.website = place.website;
+          }
+
+          // push the place details information to the current details buffer
+          taqueria_app.current_details(details);
+          // cache the found details in the gmap object cache
+          gmap.object_cache[current_marker_index].place_details = details;
+
+        } else {
+          console.log('Could not reach Places api');
+          // trigger appropriate error in main app
+          taqueria_app.error_triggered(gmap.error_codes.places_failed);
+        }
+      });
     } else {
-
+      // push the cached place details object to the current details buffer
+      taqueria_app.current_details(current_place_details);
     }
-
-    // create a places service api interface
-    let place_service = new google.maps.places.PlacesService(gmap.map);
-    console.log(marker);
-    console.log(marker.id);
-    // make the places service request
-    place_service.getDetails({
-      placeId: marker.id
-    }, function(place, status) {
-      if (status === google.maps.places.PlacesServiceStatus.OK) {
-        let details = {};
-
-        if (place.name) {
-          details.name = place.name;
-        }
-        if (place.formatted_address) {
-          details.address = place.formatted_address;
-        }
-        if (place.formatted_phone_number) {
-          details.phone = place.formatted_phone_number;
-        }
-        if (place.opening_hours) {
-          details.hours = place.opening_hours.weekday_text;
-        }
-        if (place.photos) {
-          details.photos = place.photos[0].getUrl(
-              {maxHeight: 100, maxWidth: 200});
-        }
-
-        taqueria_app.current_details(details);
-      } else {
-        console.log('Could not reach places api');
-      }
-    });
   },
   get_panorama: function(marker) {
     /*
@@ -460,6 +491,8 @@ function Taqueria(data) {
   this.location = ko.observable(data.location);
   // store foursquare place id
   this.foursquare_id = ko.observable(data.foursquare_id);
+  // store google place id
+  this.place_id = ko.observable(data.place_id);
 }
 
 function TaqueriaListViewModel() {
@@ -484,9 +517,7 @@ function TaqueriaListViewModel() {
   self.ready = ko.observable(false);
   // flag to track if street view panorama has finished loading
   self.panorama_ready = ko.observable(false);
-  // // flag to track if details are ready to show
-  // self.details_ready = ko.observable(false);
-  // stores details already loaded by api
+  // stores details currently loaded by api
   self.current_details = ko.observable();
 
   // OPERATIONS
@@ -515,7 +546,8 @@ function TaqueriaListViewModel() {
               index: i,
               name: current_item.name,
               location: current_item.location,
-              foursquare_id: current_item.id
+              foursquare_id: current_item.id.foursquare,
+              place_id: current_item.id.place
           });
           // push the Taqueria to the main app's Taquerias array
           self.Taquerias.push(current_Taqueria);
@@ -609,8 +641,8 @@ function TaqueriaListViewModel() {
     // show the corresponding street view panorama
     gmap.get_panorama(current_marker);
     // show the corresponding place details
-    // gmap.get_place_details(current_marker);
-    // console.log(self.current_details);
+    gmap.get_place_details(current_marker);
+
     // change appearnace of map marker
     gmap.highlight_marker(current_marker);
 
