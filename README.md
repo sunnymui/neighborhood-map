@@ -21,6 +21,7 @@ You can clone the repository to your local machine if you want to play around wi
 * jQuery https://jquery.com/
 * cdnjs https://cdnjs.com/
 * git https://git-scm.com/
+* Trello (Keeps me organized) https://trello.com/
 
 ## APIs Used
 
