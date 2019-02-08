@@ -421,7 +421,7 @@ var fsquare = {
   },
   credentials: '',
   endpoints: {
-    details: 'https://api.foursquare.om/v2/venues/'
+    details: 'https://api.foursquare.com/v2/venues/'
   },
   object_cache: [],
   // uses ES6 simulated default named parameters, source:
