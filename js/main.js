@@ -37,6 +37,8 @@ var util = {
 var gmap = {
   map: {},
   markers: [],
+  selected_marker: {},
+  default_icon: {},
   info_window: {},
   panorama: {},
   error_codes: {
@@ -49,7 +51,7 @@ var gmap = {
   // https://stackoverflow.com/questions/894860/set-a-default-parameter-value-for-a-javascript-function/46760685#46760685
   Cache_obj: function({
     marker = {},
-    panorama = {}
+    place_details = {}
   } = {}) {
     /*
     Constructor function for an object cache item to store already instantiated
@@ -58,7 +60,7 @@ var gmap = {
     Return:
     */
     this.marker = marker;
-    this.panorama = panorama;
+    this.place_details = place_details;
   },
   init_map: function(locations_data) {
     /*
@@ -88,6 +90,12 @@ var gmap = {
 
       // instantiate an infowindow to populate place details with
       gmap.info_window = new google.maps.InfoWindow();
+
+      // Create a "highlighted location" marker color for when the user
+      // wants more details on the marker.
+      gmap.selected_marker = gmap.make_marker_icon('FFFF24');
+      // Create a default marker icon based on color
+      gmap.default_icon = gmap.make_marker_icon('0091ff');
 
       // create markers per location
       locations_data.forEach(function(current_item) {
@@ -120,18 +128,12 @@ var gmap = {
     Return: a Marker instance for the location (obj)
     */
 
-    // Create a default marker icon based on color
-    var default_icon = gmap.make_marker_icon('0091ff');
-    // Create a "highlighted location" marker color for when the user
-    // mouses over the marker.
-    var highlighted_icon = gmap.make_marker_icon('FFFF24');
-
     // Create a marker per location, and put into markers array.
     var marker = new google.maps.Marker({
       position: location,
       title: name,
       animation: google.maps.Animation.DROP,
-      icon: default_icon
+      icon: gmap.default_icon
     });
 
     // Create an onclick event to open the info window at each marker.
@@ -141,12 +143,12 @@ var gmap = {
     // Two event listeners - one for mouseover, one for mouseout,
     // to change the colors back and forth.
     marker.addListener('mouseover', function() {
-      this.setIcon(highlighted_icon);
+      this.setIcon(gmap.selected_marker);
       // show info window on hover
       gmap.show_info_window(this, gmap.info_window);
     });
     marker.addListener('mouseout', function() {
-      this.setIcon(default_icon);
+      this.setIcon(gmap.default_icon);
     });
 
     // return the created marker
@@ -236,6 +238,20 @@ var gmap = {
       markers[i].setMap(null);
     }
   },
+  highlight_marker: function(marker) {
+    /*
+    Highlights a specific marker. Useful to show it's been selected.
+    Args: marker (obj) - the marker to highlight
+    Return: na
+    */
+    // add a bounce animation ot the marker
+    marker.setAnimation(google.maps.Animation.BOUNCE);
+
+    // clear the animation when done
+    addEventListener('hide.bs.modal', function() {
+      marker.setAnimation(null);
+    }.call(this, marker));
+  },
   make_marker_icon: function(markerColor) {
     /*
     Creates a custom marker icon based on a color.
@@ -250,7 +266,7 @@ var gmap = {
       new google.maps.Size(21,34));
     return markerImage;
   },
-  get_place_details: function(marker, infowindow) {
+  get_place_details: function(marker) {
     /*
     This is the PLACE DETAILS search - it's the most detailed so it's only
     executed when a marker is selected, indicating the user wants more
@@ -259,47 +275,46 @@ var gmap = {
           infoWindow (obj) - the infoWindow instance to add detail info to
     Return: na
     */
+
+    let current_marker_index = gmap.markers.indexOf(marker);
+    let current_place_details = gmap.object_cache[current_marker_index].place_details;
+    if (util.is_empty_obj(current_place_details)) {
+
+    } else {
+
+    }
+
     // create a places service api interface
     let place_service = new google.maps.places.PlacesService(gmap.map);
-
+    console.log(marker);
+    console.log(marker.id);
     // make the places service request
     place_service.getDetails({
       placeId: marker.id
     }, function(place, status) {
       if (status === google.maps.places.PlacesServiceStatus.OK) {
-        // Set the marker property on this infowindow so it isn't created again.
-        infowindow.marker = marker;
-        var innerHTML = '<div>';
+        let details = {};
+
         if (place.name) {
-          innerHTML += '<strong>' + place.name + '</strong>';
+          details.name = place.name;
         }
         if (place.formatted_address) {
-          innerHTML += '<br>' + place.formatted_address;
+          details.address = place.formatted_address;
         }
         if (place.formatted_phone_number) {
-          innerHTML += '<br>' + place.formatted_phone_number;
+          details.phone = place.formatted_phone_number;
         }
         if (place.opening_hours) {
-          innerHTML += '<br><br><strong>Hours:</strong><br>' +
-              place.opening_hours.weekday_text[0] + '<br>' +
-              place.opening_hours.weekday_text[1] + '<br>' +
-              place.opening_hours.weekday_text[2] + '<br>' +
-              place.opening_hours.weekday_text[3] + '<br>' +
-              place.opening_hours.weekday_text[4] + '<br>' +
-              place.opening_hours.weekday_text[5] + '<br>' +
-              place.opening_hours.weekday_text[6];
+          details.hours = place.opening_hours.weekday_text;
         }
         if (place.photos) {
-          innerHTML += '<br><br><img src="' + place.photos[0].getUrl(
-              {maxHeight: 100, maxWidth: 200}) + '">';
+          details.photos = place.photos[0].getUrl(
+              {maxHeight: 100, maxWidth: 200});
         }
-        innerHTML += '</div>';
-        infowindow.setContent(innerHTML);
-        infowindow.open(map, marker);
-        // Make sure the marker property is cleared if the infowindow is closed.
-        infowindow.addListener('closeclick', function() {
-          infowindow.marker = null;
-        });
+
+        taqueria_app.current_details(details);
+      } else {
+        console.log('Could not reach places api');
       }
     });
   },
@@ -445,8 +460,6 @@ function Taqueria(data) {
   this.location = ko.observable(data.location);
   // store foursquare place id
   this.foursquare_id = ko.observable(data.foursquare_id);
-  // stores details already loaded by api
-  this.detail_cache = ko.observable();
 }
 
 function TaqueriaListViewModel() {
@@ -473,6 +486,8 @@ function TaqueriaListViewModel() {
   self.panorama_ready = ko.observable(false);
   // // flag to track if details are ready to show
   // self.details_ready = ko.observable(false);
+  // stores details already loaded by api
+  self.current_details = ko.observable();
 
   // OPERATIONS
 
@@ -593,6 +608,11 @@ function TaqueriaListViewModel() {
 
     // show the corresponding street view panorama
     gmap.get_panorama(current_marker);
+    // show the corresponding place details
+    // gmap.get_place_details(current_marker);
+    // console.log(self.current_details);
+    // change appearnace of map marker
+    gmap.highlight_marker(current_marker);
 
     // display the modal dialog box view
     $('#details').modal('toggle');
