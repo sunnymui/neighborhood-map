@@ -275,7 +275,6 @@ var gmap = {
     executed when a marker is selected, indicating the user wants more
     details about that place.
     Args: marker (obj) - the Marker instance to get details for from places api
-          infoWindow (obj) - the infoWindow instance to add detail info to
     Return: na
     */
     // get the index of the current marker in the markers array
