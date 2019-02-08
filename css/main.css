@@ -131,6 +131,11 @@ textarea {
     min-width: 16em;
   }
 
+  .alert {
+    /* so it is above the modal fade layer */
+    z-index: 1100;
+  }
+
   .review {
     /* So it doesn't take up tons of space */
     max-height: 140px;
@@ -155,16 +160,6 @@ textarea {
   .overflow-scroll {
     overflow-y: scroll;
   }
-
-
-
-
-
-
-
-
-
-
 
 
 /* ==========================================================================

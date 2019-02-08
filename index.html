@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta http-equiv="x-ua-compatible" content="ie=edge">
-        <title></title>
+        <title>SJ Taco Map - Taquerias in San Jose</title>
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
@@ -49,7 +49,7 @@
           </button>
         </div>
 
-        <main role="main" class="flex-container-height-100">
+        <main class="flex-container-height-100">
 
           <div class="row sm-height-100 no-gutters">
             <!-- Map View -->
@@ -125,7 +125,7 @@
                       <blockquote class="blockquote">
                         <p data-bind="text: reviews[0].text"></p>
                         <footer class="blockquote-footer">
-                          <img data-bind="attr: {src: reviews[0].profile_photo_url}"/>
+                          <img data-bind="attr: {src: reviews[0].profile_photo_url, alt: reviews[0].author_name}"/>
                           <span data-bind="text: reviews[0].author_name"></span>
                         </footer>
                       </blockquote>
@@ -154,6 +154,9 @@
                       </ul>
                     </li>
                     <!-- /ko -->
+                    <li class="list-group-item">
+                      <a data-bind="attr: {href : canonicalUrl}" target="_blank">View Foursquare Page</a>
+                    </li>
                   </ul>
                   <div class="container mt-3">
                     <h6 class="text-muted">Google Street View</h6>

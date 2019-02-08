@@ -141,17 +141,22 @@ var gmap = {
 
     // Create an onclick event to open the info window at each marker.
     marker.addListener('click', function() {
-      gmap.show_info_window(this, gmap.info_window);
+      // get the index of the current marker
+      let current_index = gmap.markers.indexOf(this);
+      // show the details for that marker
+      taqueria_app.show_details(taqueria_app.Taquerias()[current_index]);
+      // highglight the marker
+      gmap.highlight_marker(this);
     });
     // Two event listeners - one for mouseover, one for mouseout,
     // to change the colors back and forth.
     marker.addListener('mouseover', function() {
-      this.setIcon(gmap.selected_marker);
+      //this.setIcon(gmap.selected_marker);
       // show info window on hover
       gmap.show_info_window(this, gmap.info_window);
     });
     marker.addListener('mouseout', function() {
-      this.setIcon(gmap.default_icon);
+      //this.setIcon(gmap.default_icon);
     });
 
     // return the created marker
@@ -167,17 +172,16 @@ var gmap = {
     let markers = gmap.markers;
     // bounds obj to extend map with our marker locations
     let bounds = new google.maps.LatLngBounds();
-    // shorthand to the map
-    let map = gmap.map;
+
     // Extend the boundaries of the map for each marker and display the marker
     for (let i = 0; i < markers.length; i++) {
       // set the map to show the marker on the current map
-      markers[i].setMap(map);
+      markers[i].setMap(gmap.map);
       // fits the map bounds to the marker
       bounds.extend(markers[i].position);
     }
     // fit the map to the bounds of the marker locaitons
-    map.fitBounds(bounds);
+    gmap.map.fitBounds(bounds);
   },
   show_markers: function(marker_array) {
     /*
@@ -185,19 +189,17 @@ var gmap = {
     Args: Marker_array (array)- marker(s) to display on the map
     Return: na
     */
-    // shorthand to the map
-    let map = gmap.map;
     // bounds to extend the map with our new marker location
     let bounds = new google.maps.LatLngBounds();
     // Extend the boundaries of the map for each marker and display the marker
     for (let i = 0; i < marker_array.length; i+=1) {
       // set the map to show the marker on the current map
-      marker_array[i].setMap(map);
+      marker_array[i].setMap(gmap.map);
       // fits the map bounds to the marker
       bounds.extend(marker_array[i].position);
     }
     // fit the map with the new bounds
-    map.fitBounds(bounds);
+    gmap.map.fitBounds(bounds);
   },
   hide_marker: function(marker) {
     /*
@@ -205,8 +207,6 @@ var gmap = {
     Args: Marker (obj) - marker to hide on the map
     Return: na
     */
-    // shorthand to the map
-    let map = gmap.map;
     // bounds to extend the map with our new marker location
     let bounds = new google.maps.LatLngBounds();
     // remove the marker from the map
@@ -223,7 +223,7 @@ var gmap = {
       }
     }
     // fit the map with the new bounds
-    map.fitBounds(bounds);
+    gmap.map.fitBounds(bounds);
   },
   hide_all_markers: function() {
     /*
@@ -233,8 +233,7 @@ var gmap = {
     */
     // shorthand for the markers array
     let markers = gmap.markers;
-    // shorthand to the map
-    let map = gmap.map;
+
     // Extend the boundaries of the map for each marker and display the marker
     for (let i = 0; i < markers.length; i+=1) {
       // hide the marker from the current map
@@ -249,11 +248,14 @@ var gmap = {
     */
     // add a bounce animation ot the marker
     marker.setAnimation(google.maps.Animation.BOUNCE);
+    // change color
+    marker.setIcon(gmap.selected_marker);
 
-    // clear the animation when done
-    addEventListener('hide.bs.modal', function() {
+    // clear effects after they play
+    setTimeout(function(){
       marker.setAnimation(null);
-    }.call(this, marker));
+      marker.setIcon(gmap.default_icon);
+    }, 500);
   },
   make_marker_icon: function(markerColor) {
     /*
@@ -565,6 +567,8 @@ function Taqueria(data) {
 function TaqueriaListViewModel() {
   // DATA
   let self = this;
+  // loading thia via fetch rather than locally to practice using fetch
+  // and to simulate working with a remote data api with all the async considerations
   const init_data_url = 'https://sunnymui.github.io/neighborhood-map/js/data.js';
 
   // array to store each taqueria listing to be displayed
