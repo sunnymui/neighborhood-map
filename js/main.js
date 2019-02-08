@@ -417,87 +417,116 @@ var fsquare = {
   client: {
     id: 'NFVFONNFXKXHUZIRELJPUT5OVPJYJASJLDU3GUGPABYLRJY5',
     secret:'UCVSJOTSDRFKMBWTYIGTXFUOO45ECAZCQLDU4ZAN301IBU2G',
-    api_version: '20180129',
+    api_version: '20180129'
   },
+  credentials: '',
   endpoints: {
     details: 'https://api.foursquare.com/v2/venues/'
   },
-  get_details: function(id) {
+  object_cache: [],
+  // uses ES6 simulated default named parameters, source:
+  // https://stackoverflow.com/questions/894860/set-a-default-parameter-value-for-a-javascript-function/46760685#46760685
+  Cache_obj: function({
+    place_details = {}
+  } = {}) {
     /*
-    Gets the Foursquare place details for a specific place by id.
-    Args: id (string) - id string for the foursquare place
+    Constructor function for an object cache item to store already instantiated
+    fsquare data objects so we don't have to waste resources recreating things.
+    Args: foursaure data objs to cache like place data response json
     Return: na
     */
-    // compose the api request
+    this.place_details = place_details;
+  },
+  error_codes: {
+    api_error: 'Could not get Foursquare results. Please try again later or contact support.',
+    network_error: 'Could not connect to Foursquare. Please check your internet connection and reload the page.',
+    data_corrupt_error: 'Something went wrong processing basic data. Please reload.'
+  },
+  init_fsquare: function(locations_data) {
+    /*
+    Iniatilizes the fsquare module with basic starting objects and things.
+    Args: locations_data (array) - an array of location data objects in corresponding
+          order with other modules' indexes
+    Return: na
+    */
+    try {
+      // create the authentication credential string
+      fsquare.credentials = fsquare.compose_credentials(fsquare.client.id, fsquare.client.secret, fsquare.client.api_version);
+
+      // create obj caches per location to match the indexed order
+      locations_data.forEach(function(current_item) {
+        // initialize the object cache instance
+        let current_cached_obj = new fsquare.Cache_obj();
+
+        // store the cache instance in the object cache
+        fsquare.object_cache.push(current_cached_obj);
+      });
+    }
+    catch(error) {
+      console.log(error);
+      // the data has to be corrupted in the handoff between modules for this to happen
+      taqueria_app.error_triggered(fsquare.error_codes.data_corrupt_error);
+    }
+  },
+  compose_credentials: function(id, secret, version) {
+    /*
+    Concatenates the client authentication credentials together with appropriate
+    parameter names into a string to add to endpoints.
+    Args: id (string) - the auth id for the client
+          secret (string) - the client secret string
+          version (string) - the version of the api we're expecting
+    Return: authentication credentials (string) to append to api requests
+    */
+    return '?client_id=' +
+            id +
+            '&client_secret=' +
+            secret +
+            '&v=' +
+            version;
+  },
+  get_details: function(Taqueria) {
+    /*
+    Gets the Foursquare place details for a specific place by id from the venues
+    details service.
+    Args: Taqueria (obj) - Taqueria instance we want to get details for
+    Return: na
+    */
+    // compose the api request with client details
     let request = fsquare.endpoints.details +
-                  id +
-                  '?client_id=' +
-                  fsquare.client.id +
-                  '&client_secret=' +
-                  fsquare.client.secret +
-                  '&v=' +
-                  fsquare.client.api_version;
+                  Taqueria.foursquare_id() +
+                  fsquare.credentials;
 
     // make a fetch request to the foursquare venue details api
     fetch(request)
         .then(function(response) {
+          // check for a 404 response
+          if (!response.ok) {
+            throw fsquare.error_codes.network_error;
+          }
           // format response as json
           return response.json();
         })
         .then(function(the_json){
-          // checks success on the foursquare response side
-          if (the_json.meta.code != '200') {
-            throw 'Could not retrieve FourSquare place details';
+          // checks success on the foursquare api response side
+          if (the_json.meta.code != '200' || the_json.meta.errorType) {
+            // log the error type details for developers
+            console.log(the_json_meta.errorType);
+            // throw an api error
+            throw fsquare.error_codes.api_error;
           }
-          let string_result = JSON.stringify(the_json);
+
           console.log(the_json);
         })
         .catch(function(error) {
-
-          console.log(error);
-            // Code for handling errors
+          // get error type
+          if (error == fsquare.error_codes.api_error) {
+            taqueria_app.error_triggered(fsquare.error_codes.api_error);
+          } else {
+            taqueria_app.error_triggered(fsquare.error_codes.network_error);
+          }
         });
   }
 };
-
-let client_details = {
-  id: 'NFVFONNFXKXHUZIRELJPUT5OVPJYJASJLDU3GUGPABYLRJY5',
-  secret:'UCVSJOTSDRFKMBWTYIGTXFUOO45ECAZCQLDU4ZAN301IBU2G',
-  api_version: '20180129',
-};
-let api_parameters = {
-  limit: '5',
-  near: 'San Jose, CA',
-  query: 'taqueria'
-};
-let request = 'https://api.foursquare.com/v2/venues/explore?client_id='+
-client_details.id +
-'&client_secret='+
-client_details.secret +
-'&v='+
-client_details.api_version +
-'&limit='+
-api_parameters.limit +
-'&near='+
-api_parameters.near +
-'&query='+
-api_parameters.query;
-
-fetch(request)
-    .then(function(response) {
-      return response.json();
-    })
-    .then(function(the_json){
-      let string_result = JSON.stringify(the_json);
-
-      let bounds = the_json.response.suggestedBounds;
-      let results = the_json.response.groups;
-
-    })
-    .catch(function() {
-      window.alert('api no worky');
-        // Code for handling errors
-    });
 
 // Knockout Neigborhood Map Web App
 
@@ -540,6 +569,11 @@ function TaqueriaListViewModel() {
   self.place_details_ready = ko.observable(false);
   // stores details currently loaded by api
   self.current_details = ko.observable();
+  // error codes
+  self.error_codes = {
+    api_error: 'Could not read essential basic data. Try again later or contact support.',
+    network_error: 'Could not connect to essential basic data. Check your internet connection and reload the page.'
+  };
 
   // OPERATIONS
 
@@ -552,12 +586,17 @@ function TaqueriaListViewModel() {
     // fetch the initial starting data
     fetch(data_url)
       .then(function(response){
+        // check for a 404 response
+        if (!response.ok) {
+          throw self.error_codes.api_error;
+        }
         // output response as json obj
         return response.json();
       })
       .then(function(init_data){
         // grab the array of raw data
         let response_array = init_data.response;
+
         // loop through the data and instantiate Taqueria objs
         for (let i = 0; i < response_array.length; i+=1) {
           // shorthand for the current data item
@@ -575,14 +614,22 @@ function TaqueriaListViewModel() {
         }
         // start the google map module with the raw location data
         gmap.init_map(response_array);
+        // start the foursquare module with raw data
+        fsquare.init_fsquare(response_array);
 
         // set ready status to true so rendering views can start
         self.ready(true);
       })
-      .catch(function() {
-        console.log('Could not fetch starting data.');
-        // trigger the erro flag observable
-        self.error_triggered('Could not get the starting data. Check your internet connection and reload the page.');
+      .catch(function(error) {
+        // if something our api had an error trigger that code
+        if (error == self.error_codes.api_error) {
+          self.error_triggered(self.error_codes.api_error);
+        } else {
+          // otherwise trigger the network error
+          console.log('Could not fetch starting data.');
+          // trigger the error flag observable w/ network error
+          self.error_triggered(self.error_codes.network_error);
+        }
       });
   };
 
@@ -668,7 +715,7 @@ function TaqueriaListViewModel() {
     // show the corresponding place details
     gmap.get_place_details(current_marker);
     // show the foursquare place details
-    fsquare.get_details(Taqueria.foursquare_id());
+    fsquare.get_details(Taqueria);
 
     // change appearnace of map marker
     gmap.highlight_marker(current_marker);
