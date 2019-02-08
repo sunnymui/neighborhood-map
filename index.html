@@ -28,14 +28,8 @@
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav mr-auto">
               <li class="nav-item active">
-                <a class="nav-link" href="#">Map+List View<span class="sr-only">(current)</span></a>
+                <a class="nav-link" href="#"><span class="sr-only">(current)</span></a>
               </li>
-              <!-- <li class="nav-item">
-                <a class="nav-link" href="#">List Only</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link disabled" href="#">Map Only</a>
-              </li> -->
               <li class="nav-item">
                 <a data-bind="click: reset_view" class="nav-link" href="#">Reset</a>
               </li>
@@ -46,6 +40,14 @@
             </form>
           </div>
         </nav>
+
+        <div data-bind="visible: error_triggered, css: { show: error_triggered}" class="alert alert-danger alert-dismissible fade mb-0" role="alert">
+          <p data-bind="text: error_triggered">  
+          </p>
+          <button data-bind="click: clear_error" type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
 
         <main role="main" class="flex-container-height-100">
 
@@ -90,9 +92,12 @@
                     <li class="list-group-item">
                       Google Rating: <span data-bind="text: rating" class="badge badge-primary"></span>
                     </li>
+                    <!-- ko if: website -->
                     <li class="list-group-item">
                       <a data-bind="text: website, attr: {href: website}" ></a>
                     </li>
+                    <!-- /ko -->
+                    <!-- ko if: hours -->
                     <li class="list-group-item">
                       <div class="accordion" id="hours">
                         <div>
@@ -111,6 +116,8 @@
                          </div>
                       </div>
                     </li>
+                    <!-- /ko -->
+                    <!-- ko if: reviews -->
                     <li class="list-group-item overflow-auto review">
                       <span class="badge badge-info">Highlighted Review</span>
                       <blockquote class="blockquote">
@@ -121,6 +128,7 @@
                         </footer>
                       </blockquote>
                     </li>
+                    <!-- /ko -->
                   </ul>
                   <div class="container mt-3">
                     <h6 class="text-muted">Google Street View</h6>

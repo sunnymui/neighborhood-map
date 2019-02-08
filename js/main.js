@@ -296,45 +296,30 @@ var gmap = {
       }, function(place, status) {
         if (status === google.maps.places.PlacesServiceStatus.OK) {
           // will store the found information
-          let details = {};
-
-          // full name of the place
-          if (place.name) {
-            details.name = place.name;
-          }
-          // full formatted street address
-          if (place.formatted_address) {
-            details.address = place.formatted_address;
-          }
-          // phone including area code
-          if (place.formatted_phone_number) {
-            details.phone = place.formatted_phone_number;
-          }
-          // array of business hours by day in text strings
-          if (place.opening_hours) {
-            details.hours = place.opening_hours.weekday_text;
-            console.log(details.hours);
-          }
-          // photo of the business
-          if (place.photos) {
-            details.photos = place.photos[0].getUrl(
-                {maxHeight: 100, maxWidth: 200});
-          }
-          // array of reviews for the business
-          if (place.reviews) {
-            details.reviews = place.reviews;
-          }
-          // overall google rating out of 5
-          if (place.rating) {
-            details.rating = place.rating;
-          }
-          // official website
-          if (place.website) {
-            details.website = place.website;
-          }
+          let details = {
+            // full name of the place
+            name: place.name || '',
+            // full formatted street address
+            address: place.formatted_address || '',
+            // phone including area code
+            phone: place.formatted_phone_number || '',
+            // array of business hours by day in text strings
+            hours: place.opening_hours.weekday_text || '',
+            // photo of the business
+            photos: place.photos[0].getUrl(
+                {maxHeight: 100, maxWidth: 200}) || '',
+            // array of reviews for the business
+            reviews: place.reviews || '',
+            // array of reviews for the business
+            rating: place.rating || '',
+            // official website
+            website: place.website || ''
+          };
 
           // push the place details information to the current details buffer
           taqueria_app.current_details(details);
+          // trigger details ready in main app
+          taqueria_app.place_details_ready(true);
           // cache the found details in the gmap object cache
           gmap.object_cache[current_marker_index].place_details = details;
 
@@ -347,6 +332,8 @@ var gmap = {
     } else {
       // push the cached place details object to the current details buffer
       taqueria_app.current_details(current_place_details);
+      // trigger details ready in main app
+      taqueria_app.place_details_ready(true);
     }
   },
   get_panorama: function(marker) {
@@ -437,6 +424,9 @@ var fsquare = {
   },
   api_parameters: {
 
+  },
+  get_details: function() {
+
   }
 };
 
@@ -479,7 +469,6 @@ fetch(request)
         // Code for handling errors
     });
 
-
 // Knockout Neigborhood Map Web App
 
 function Taqueria(data) {
@@ -517,6 +506,8 @@ function TaqueriaListViewModel() {
   self.ready = ko.observable(false);
   // flag to track if street view panorama has finished loading
   self.panorama_ready = ko.observable(false);
+  // flag to track if details ready
+  self.place_details_ready = ko.observable(false);
   // stores details currently loaded by api
   self.current_details = ko.observable();
 
@@ -557,9 +548,12 @@ function TaqueriaListViewModel() {
 
         // set ready status to true so rendering views can start
         self.ready(true);
-      }
-      // TODO add some error catching
-    );
+      })
+      .catch(function() {
+        console.log('Could not fetch starting data.');
+        // trigger the erro flag observable
+        self.error_triggered('Could not get the starting data. Check your internet connection and reload the page.');
+      });
   };
 
   self.update_map = function(updated_Taquerias) {
@@ -629,6 +623,7 @@ function TaqueriaListViewModel() {
 
     // reset ready state
     self.panorama_ready(false);
+    self.place_details_ready(false);
 
     // set the current taqueria as the passed in one that triggered the function
     self.currently_viewing_Taqueria(Taqueria);
@@ -678,6 +673,15 @@ function TaqueriaListViewModel() {
     let current_index = current_element.index();
     // show the corresponding info window in the map view
     gmap.show_info_window(gmap.markers[current_index], gmap.info_window);
+  };
+
+  self.clear_error = function() {
+    /*
+    Clears the error state observable.
+    Args: na
+    Return: na
+    */
+    self.error_triggered('');
   };
 
   self.reset_view = function() {
