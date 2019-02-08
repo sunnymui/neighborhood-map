@@ -496,35 +496,53 @@ var fsquare = {
                   Taqueria.foursquare_id() +
                   fsquare.credentials;
 
-    // make a fetch request to the foursquare venue details api
-    fetch(request)
-        .then(function(response) {
-          // check for a 404 response
-          if (!response.ok) {
-            throw fsquare.error_codes.network_error;
-          }
-          // format response as json
-          return response.json();
-        })
-        .then(function(the_json){
-          // checks success on the foursquare api response side
-          if (the_json.meta.code != '200' || the_json.meta.errorType) {
-            // log the error type details for developers
-            console.log(the_json_meta.errorType);
-            // throw an api error
-            throw fsquare.error_codes.api_error;
-          }
+    // get the index of the current taqueria
+    let current_index = Taqueria.index();
+    // get the corresponding cached details
+    let current_fsquare_details = fsquare.object_cache[current_index].place_details;
+    // check if we've cached the foursquare place details previously
+    let current_details_not_cached = util.is_empty_obj(current_fsquare_details);
 
-          console.log(the_json);
-        })
-        .catch(function(error) {
-          // get error type
-          if (error == fsquare.error_codes.api_error) {
-            taqueria_app.error_triggered(fsquare.error_codes.api_error);
-          } else {
-            taqueria_app.error_triggered(fsquare.error_codes.network_error);
-          }
-        });
+    // make the external foursquare api request if we don't have the details cached
+    if (current_details_not_cached) {
+      // make a fetch request to the foursquare venue details api
+      fetch(request)
+          .then(function(response) {
+            // check for a 404 response
+            if (!response.ok) {
+              throw fsquare.error_codes.network_error;
+            }
+            // format response as json
+            return response.json();
+          })
+          .then(function(data){
+            // checks success on the foursquare api response side
+            if (data.meta.code != '200' || data.meta.errorType) {
+              // log the error type details for developers
+              console.log(data.meta.errorType);
+              // throw an api error
+              throw fsquare.error_codes.api_error;
+            }
+            // send the found data from api to the main app fsquare data buffer
+            taqueria_app.current_fsquare_stats(data);
+            // cache the found data in the obj cache for future use
+            fsquare.object_cache[current_index].place_details = data;
+            console.log(data);
+          })
+          .catch(function(error) {
+            // get error type and trigger the correct error
+            if (error == fsquare.error_codes.api_error) {
+              taqueria_app.error_triggered(fsquare.error_codes.api_error);
+            } else {
+              taqueria_app.error_triggered(fsquare.error_codes.network_error);
+            }
+          });
+    } else {
+      // send the cached foursquare data for the main app, saving them sweet api limits
+      taqueria_app.current_fsquare_stats(current_fsquare_details);
+    }
+    console.log(fsquare.object_cache);
+    console.log(taqueria_app.current_fsquare_stats);
   }
 };
 
@@ -567,8 +585,13 @@ function TaqueriaListViewModel() {
   self.panorama_ready = ko.observable(false);
   // flag to track if details ready
   self.place_details_ready = ko.observable(false);
-  // stores details currently loaded by api
+  // flag to track if foursquare stats ready
+  self.fsquare_stats_ready = ko.observable(false);
+  // stores google place details currently being viewed
   self.current_details = ko.observable();
+  // stores foursquare stats currently being viewed
+  self.current_fsquare_stats = ko.observable();
+
   // error codes
   self.error_codes = {
     api_error: 'Could not read essential basic data. Try again later or contact support.',
@@ -701,6 +724,7 @@ function TaqueriaListViewModel() {
     // reset ready state
     self.panorama_ready(false);
     self.place_details_ready(false);
+    self.fsquare_stats_ready(false);
 
     // set the current taqueria as the passed in one that triggered the function
     self.currently_viewing_Taqueria(Taqueria);
