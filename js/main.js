@@ -421,7 +421,7 @@ var fsquare = {
   },
   credentials: '',
   endpoints: {
-    details: 'https://api.foursquare.com/v2/venues/'
+    details: 'https://api.foursquare.om/v2/venues/'
   },
   object_cache: [],
   // uses ES6 simulated default named parameters, source:
@@ -524,25 +524,27 @@ var fsquare = {
               throw fsquare.error_codes.api_error;
             }
             // send the found data from api to the main app fsquare data buffer
-            taqueria_app.current_fsquare_stats(data);
+            taqueria_app.current_fsquare_stats(data.response.venue);
+            // update foursquare data readiness flag
+            taqueria_app.fsquare_stats_ready(true);
             // cache the found data in the obj cache for future use
-            fsquare.object_cache[current_index].place_details = data;
-            console.log(data);
+            fsquare.object_cache[current_index].place_details = data.response.venue;
           })
           .catch(function(error) {
             // get error type and trigger the correct error
             if (error == fsquare.error_codes.api_error) {
               taqueria_app.error_triggered(fsquare.error_codes.api_error);
             } else {
+              console.log(error);
               taqueria_app.error_triggered(fsquare.error_codes.network_error);
             }
           });
     } else {
       // send the cached foursquare data for the main app, saving them sweet api limits
       taqueria_app.current_fsquare_stats(current_fsquare_details);
+      // update foursquare data readiness flag
+      taqueria_app.fsquare_stats_ready(true);
     }
-    console.log(fsquare.object_cache);
-    console.log(taqueria_app.current_fsquare_stats);
   }
 };
 
@@ -759,7 +761,9 @@ function TaqueriaListViewModel() {
     let ready = false;
 
     // different api readiness flags to determine total readiness
-    if (self.panorama_ready()) {
+    if (self.panorama_ready() &&
+        self.place_details_ready() &&
+        self.fsquare_stats_ready()) {
       // everything ready so set to true
       ready = true;
     }

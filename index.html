@@ -42,7 +42,7 @@
         </nav>
 
         <div data-bind="visible: error_triggered, css: { show: error_triggered}" class="alert alert-danger alert-dismissible fade mb-0" role="alert">
-          <p data-bind="text: error_triggered">  
+          <p data-bind="text: error_triggered">
           </p>
           <button data-bind="click: clear_error" type="button" class="close" data-dismiss="alert" aria-label="Close">
             <span aria-hidden="true">&times;</span>
@@ -89,9 +89,11 @@
                   <ul data-bind="with: $parent.current_details" class="list-group list-group-flush">
                     <li class="list-group-item"><em data-bind="text: address" ></em></li>
                     <li data-bind="text: phone" class="list-group-item"></li>
+                    <!-- ko if: rating -->
                     <li class="list-group-item">
                       Google Rating: <span data-bind="text: rating" class="badge badge-primary"></span>
                     </li>
+                    <!-- /ko -->
                     <!-- ko if: website -->
                     <li class="list-group-item">
                       <a data-bind="text: website, attr: {href: website}" ></a>
@@ -127,6 +129,29 @@
                           <span data-bind="text: reviews[0].author_name"></span>
                         </footer>
                       </blockquote>
+                    </li>
+                    <!-- /ko -->
+                  </ul>
+                  <h6 class="mt-3 text-muted">Foursquare Stats</h6>
+                  <ul data-bind="with: $parent.current_fsquare_stats" class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                      <span>Likes:</span>
+                      <span data-bind="text: likes.count" class="badge badge-success badge-pill"></span>
+                      <span>Tips:</span>
+                      <span data-bind="text: tips.count" class="badge badge-success badge-pill"></span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                      <span>Rating:</span>
+                      <span data-bind="style: { backgroundColor: ratingColor }, text: rating" class="badge badge-primary badge-pill"></span>
+                      <span class="font-italic font-weight-light ">Raters:</span>
+                      <span class="font-italic font-weight-light " data-bind="text: ratingSignals"></span>
+                    </li>
+                    <!-- ko if tips.groups[0].items -->
+                    <li class="list-group-item">
+                      <span class="badge badge-info">Top Tips</span>
+                      <ul data-bind="foreach: tips.groups[0].items" class="mt-3 list-group list-group-flush">
+                        <li data-bind="text: text" class="list-group-item"></li>
+                      </ul>
                     </li>
                     <!-- /ko -->
                   </ul>
