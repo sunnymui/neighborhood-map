@@ -62,16 +62,6 @@
     }
   },{
     "id": {
-      "foursquare":"4b5b5916f964a52097f628e3",
-      "place": "ChIJ883MGVs0joARZ938ykfiIDw"
-    },
-    "name": "Tu Mero Mole",
-    "location": {
-      "lat": 37.260744996927784,
-      "lng": -121.93246259880927
-    }
-  },{
-    "id": {
       "foursquare":"4d3112a4c75a6ea855e700ae",
       "place": "ChIJD2my84UxjoARCcxWmahDn1E"
     },
