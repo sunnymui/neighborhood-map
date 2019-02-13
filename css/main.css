@@ -125,6 +125,14 @@ textarea {
     height: 30%;
   }
 
+  /* Responsive logo */
+  .navbar-brand>img {
+    height: 100%;
+    max-height: 40px;
+    padding: 0;
+    width: auto;
+  }
+
   #pano {
     /* minimum useful size for the street view photo */
     min-height: 16em;
