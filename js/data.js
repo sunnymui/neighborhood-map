@@ -50,7 +50,6 @@
         "lat": 37.304927,
         "lng": -121.921147
     }
-    // add some new ones
   },{
     "id": {
       "foursquare":"4c6cba011fb2a143dd71fce6",
