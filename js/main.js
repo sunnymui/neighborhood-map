@@ -164,7 +164,8 @@ var gmap = {
   },
   show_all_markers: function() {
     /*
-    Displays all the markers in the markers array.
+    Displays all the markers in the markers array by setting their map. For the
+    initial display of all markers.
     Args: na
     Return: na
     */
@@ -181,7 +182,7 @@ var gmap = {
   },
   show_markers: function(marker_array) {
     /*
-    Displays specific markers on the map.
+    Displays specific markers on the map through the visible property.
     Args: Marker_array (array)- marker(s) to display on the map
     Return: na
     */
@@ -663,13 +664,15 @@ function TaqueriaListViewModel() {
     gmap.show_markers(filtered_markers);
   };
 
-  self.set_current_filter_to_entered_terms = function() {
+  self.update_map_view = function() {
     /*
-    Sets the current filter to the value inputted into entered terms.
+    Updates the map view to match the filtered listings.
     Args: na
     Return: na
     */
-    self.current_filter(self.entered_terms());
+
+    // update the map view with the current filtered matches
+    self.update_map(self.filtered_Taquerias());
   };
 
   self.filtered_Taquerias = ko.computed(function() {
@@ -681,7 +684,7 @@ function TaqueriaListViewModel() {
     // make sure gmap and taquerias model is ready to go before rendering
     if (self.ready()) {
       // strip filter text of extra whitespace before/after, lowercase so it isn't case sensitive
-      let filter = util.clean_string(self.current_filter());
+      let filter = util.clean_string(self.entered_terms());
       // array to hold matching taquerias
       let matches = [];
 
@@ -698,8 +701,6 @@ function TaqueriaListViewModel() {
           return current_name.includes(filter);
         });
       }
-      // update the map view with the filtered matches
-      self.update_map(matches);
 
       return matches;
     }
@@ -791,6 +792,8 @@ function TaqueriaListViewModel() {
     self.current_filter('');
     // clear out entered terms to complete the reset
     self.entered_terms('');
+    // update the map view to match the blank filters
+    self.update_map_view();
   };
 
   // Initialize View Model Defaults
