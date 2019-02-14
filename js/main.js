@@ -170,18 +170,14 @@ var gmap = {
     */
     // shorthand for the markers array
     let markers = gmap.markers;
-    // bounds obj to extend map with our marker locations
-    let bounds = new google.maps.LatLngBounds();
 
     // Extend the boundaries of the map for each marker and display the marker
     for (let i = 0; i < markers.length; i++) {
       // set the map to show the marker on the current map
       markers[i].setMap(gmap.map);
-      // fits the map bounds to the marker
-      bounds.extend(markers[i].position);
     }
     // fit the map to the bounds of the marker locaitons
-    gmap.map.fitBounds(bounds);
+    gmap.refit_map_bounds(markers);
   },
   show_markers: function(marker_array) {
     /*
@@ -189,38 +185,28 @@ var gmap = {
     Args: Marker_array (array)- marker(s) to display on the map
     Return: na
     */
-    // bounds to extend the map with our new marker location
-    let bounds = new google.maps.LatLngBounds();
+
     // Extend the boundaries of the map for each marker and display the marker
     for (let i = 0; i < marker_array.length; i+=1) {
       // set the map to show the marker on the current map
-      marker_array[i].setMap(gmap.map);
-      // fits the map bounds to the marker
-      bounds.extend(marker_array[i].position);
+      marker_array[i].setVisible(true);
+
     }
-    // fit the map with the new bounds
-    gmap.map.fitBounds(bounds);
+    // recalculate and refit the map to the array of markers
+    gmap.refit_map_bounds(marker_array);
   },
-  hide_marker: function(marker) {
+  refit_map_bounds: function(marker_array) {
     /*
-    Hides one specific marker on the map.
-    Args: Marker (obj) - marker to hide on the map
+    Recalculates the map bounds given an array of markers then refits the map.
+    Args: Marker_array (array)- marker(s) to display on the map
     Return: na
     */
     // bounds to extend the map with our new marker location
     let bounds = new google.maps.LatLngBounds();
-    // remove the marker from the map
-    marker.setMap(null);
-
-    // Recompute the bounds of the map, accounting for now hidden markers
-    for (let i = 0; i < markers.length; i+=1) {
-      // cache ref to the current marker
-      let current_marker = markers[i];
-      // only extend bounds with visible markers' positions
-      if (current_marker.getMap()) {
-        // fits the map bounds to the marker
-        bounds.extend(current_marker.position);
-      }
+    // Extend the boundaries of the map for each marker and display the marker
+    for (let i = 0; i < marker_array.length; i+=1) {
+      // fits the map bounds to the marker
+      bounds.extend(marker_array[i].position);
     }
     // fit the map with the new bounds
     gmap.map.fitBounds(bounds);
@@ -237,7 +223,7 @@ var gmap = {
     // Extend the boundaries of the map for each marker and display the marker
     for (let i = 0; i < markers.length; i+=1) {
       // hide the marker from the current map
-      markers[i].setMap(null);
+      markers[i].setVisible(false);
     }
   },
   highlight_marker: function(marker) {
@@ -800,9 +786,11 @@ function TaqueriaListViewModel() {
     Args: na
     Return: na
     */
-    // only have to set current filter to blank since view renders everything
+    // set current filter to blank since view renders everything
     // starting from that observable
     self.current_filter('');
+    // clear out entered terms to complete the reset
+    self.entered_terms('');
   };
 
   // Initialize View Model Defaults
