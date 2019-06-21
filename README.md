@@ -1,4 +1,4 @@
-# Neighborhood Map
+# SJ Taco Map
 
 Integrates 3rd party APIs and a MVVM front end web framework for a simple single page web app plotting taquerias in San Jose on a map with live data pulled in from 3rd party APIs in the detail view for each. Places are filterable by name and the entire site is responsive. Built with modular, object oriented design with attention paid to object caching for performance.
 
